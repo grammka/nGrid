@@ -1,0 +1,274 @@
+@mixin display-inline-block {
+    display: -moz-inline-stack;
+    display: inline-block;
+    vertical-align: top;
+    zoom: 1;
+    *display: inline;
+}
+
+@mixin no-select {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+@mixin input-placeholder {
+    &.placeholder { @content; }
+    &:-moz-placeholder { @content; }
+    &::-moz-placeholder { @content; }
+    &:-ms-input-placeholder { @content; }
+    &::-webkit-input-placeholder { @content; }
+}
+
+@mixin animation($animate...) {
+    $max: length($animate);
+    $animations: '';
+
+    @for $i from 1 through $max {
+        $animations: #{$animations + nth($animate, $i)};
+
+        @if $i < $max {
+            $animations: #{$animations + ", "};
+        }
+    }
+    -webkit-animation: $animations;
+    -moz-animation:    $animations;
+    animation:         $animations;
+}
+
+@mixin keyframes($animationName) {
+    @-webkit-keyframes #{$animationName} {
+        @content;
+    }
+    @-moz-keyframes #{$animationName} {
+        @content;
+    }
+    @-o-keyframes #{$animationName} {
+        @content;
+    }
+    @keyframes #{$animationName} {
+        @content;
+    }
+}
+
+
+
+
+
+
+
+/* Inline 3 circles loader */
+
+@include keyframes(inline-loading) {
+    0% {
+        @include box-shadow(	#cacaca 	-15px -10px 0 0, 	#aaa 		0 -10px 0 0, 	#aaa 		15px -10px 0 0		);
+    }
+    20% {
+        @include box-shadow(	#fff 		-15px -10px 0 0, 	#cacaca 	0 -10px 0 0, 	#aaa 		15px -10px 0 0		);
+    }
+    40% {
+        @include box-shadow(	#cacaca 	-15px -10px 0 0, 	#fff 		0 -10px 0 0, 	#cacaca 	15px -10px 0 0		);
+    }
+    60% {
+        @include box-shadow(	#aaa 		-15px -10px 0 0, 	#cacaca 	0 -10px 0 0, 	#fff 		15px -10px 0 0		);
+    }
+    80% {
+        @include box-shadow(	#aaa 		-15px -10px 0 0, 	#aaa 		0 -10px 0 0, 	#cacaca 	15px -10px 0 0		);
+    }
+    100% {
+        @include box-shadow(	#aaa 		-15px -10px 0 0, 	#aaa 		0 -10px 0 0, 	#aaa 		15px -10px 0 0		);
+    }
+}
+
+@mixin inline-loader {
+    width: 10px;
+    height: 10px;
+    position: relative;
+
+    @include border-radius(5px);
+    @include animation(inline-loading 1.2s infinite);
+}
+
+
+
+
+
+/* Circle loader */
+
+@include keyframes(circle-loading) {
+    0% {
+        @include box-shadow(
+                rgba(0,0,0, 0.38) 0 -28px 0 0,
+                rgba(0,0,0, 0.02) 16px -22px 0 0,
+                rgba(0,0,0, 0.06) 26px -9px 0 0,
+                rgba(0,0,0, 0.10) 26px 9px 0 0,
+                rgba(0,0,0, 0.14) 16px 22px 0 0,
+                rgba(0,0,0, 0.18) 0 28px 0 0,
+                    rgba(0,0,0, 0.22) -16px 22px 0 0,
+                    rgba(0,0,0, 0.26) -26px 9px 0 0,
+                    rgba(0,0,0, 0.30) -26px -9px 0 0,
+                    rgba(0,0,0, 0.34) -16px -22px 0 0
+        );
+    }
+
+    10% {
+        @include box-shadow(
+                rgba(0,0,0, 0.34) 0 -28px 0 0,
+                rgba(0,0,0, 0.38) 16px -22px 0 0,
+                rgba(0,0,0, 0.02) 26px -9px 0 0,
+                rgba(0,0,0, 0.06) 26px 9px 0 0,
+                rgba(0,0,0, 0.10) 16px 22px 0 0,
+                rgba(0,0,0, 0.14) 0 28px 0 0,
+                    rgba(0,0,0, 0.18) -16px 22px 0 0,
+                    rgba(0,0,0, 0.22) -26px 9px 0 0,
+                    rgba(0,0,0, 0.26) -26px -9px 0 0,
+                    rgba(0,0,0, 0.30) -16px -22px 0 0
+        );
+    }
+
+    20% {
+        @include box-shadow(
+                rgba(0,0,0, 0.30) 0 -28px 0 0,
+                rgba(0,0,0, 0.34) 16px -22px 0 0,
+                rgba(0,0,0, 0.38) 26px -9px 0 0,
+                rgba(0,0,0, 0.02) 26px 9px 0 0,
+                rgba(0,0,0, 0.06) 16px 22px 0 0,
+                rgba(0,0,0, 0.10) 0 28px 0 0,
+                    rgba(0,0,0, 0.14) -16px 22px 0 0,
+                    rgba(0,0,0, 0.18) -26px 9px 0 0,
+                    rgba(0,0,0, 0.22) -26px -9px 0 0,
+                    rgba(0,0,0, 0.26) -16px -22px 0 0
+        );
+    }
+
+    30% {
+        @include box-shadow(
+                rgba(0,0,0, 0.26) 0 -28px 0 0,
+                rgba(0,0,0, 0.30) 16px -22px 0 0,
+                rgba(0,0,0, 0.34) 26px -9px 0 0,
+                rgba(0,0,0, 0.38) 26px 9px 0 0,
+                rgba(0,0,0, 0.02) 16px 22px 0 0,
+                rgba(0,0,0, 0.06) 0 28px 0 0,
+                    rgba(0,0,0, 0.10) -16px 22px 0 0,
+                    rgba(0,0,0, 0.14) -26px 9px 0 0,
+                    rgba(0,0,0, 0.18) -26px -9px 0 0,
+                    rgba(0,0,0, 0.22) -16px -22px 0 0
+        );
+    }
+
+    40% {
+        @include box-shadow(
+                rgba(0,0,0, 0.22) 0 -28px 0 0,
+                rgba(0,0,0, 0.26) 16px -22px 0 0,
+                rgba(0,0,0, 0.30) 26px -9px 0 0,
+                rgba(0,0,0, 0.34) 26px 9px 0 0,
+                rgba(0,0,0, 0.38) 16px 22px 0 0,
+                rgba(0,0,0, 0.02) 0 28px 0 0,
+                    rgba(0,0,0, 0.06) -16px 22px 0 0,
+                    rgba(0,0,0, 0.10) -26px 9px 0 0,
+                    rgba(0,0,0, 0.14) -26px -9px 0 0,
+                    rgba(0,0,0, 0.18) -16px -22px 0 0
+        );
+    }
+
+    50% {
+        @include box-shadow(
+                rgba(0,0,0, 0.18) 0 -28px 0 0,
+                rgba(0,0,0, 0.22) 16px -22px 0 0,
+                rgba(0,0,0, 0.26) 26px -9px 0 0,
+                rgba(0,0,0, 0.30) 26px 9px 0 0,
+                rgba(0,0,0, 0.34) 16px 22px 0 0,
+                rgba(0,0,0, 0.38) 0 28px 0 0,
+                    rgba(0,0,0, 0.02) -16px 22px 0 0,
+                    rgba(0,0,0, 0.06) -26px 9px 0 0,
+                    rgba(0,0,0, 0.10) -26px -9px 0 0,
+                    rgba(0,0,0, 0.14) -16px -22px 0 0
+        );
+    }
+
+    60% {
+        @include box-shadow(
+                rgba(0,0,0, 0.14) 0 -28px 0 0,
+                rgba(0,0,0, 0.18) 16px -22px 0 0,
+                rgba(0,0,0, 0.22) 26px -9px 0 0,
+                rgba(0,0,0, 0.26) 26px 9px 0 0,
+                rgba(0,0,0, 0.30) 16px 22px 0 0,
+                rgba(0,0,0, 0.34) 0 28px 0 0,
+                    rgba(0,0,0, 0.38) -16px 22px 0 0,
+                    rgba(0,0,0, 0.02) -26px 9px 0 0,
+                    rgba(0,0,0, 0.06) -26px -9px 0 0,
+                    rgba(0,0,0, 0.10) -16px -22px 0 0
+        );
+    }
+
+    70% {
+        @include box-shadow(
+                rgba(0,0,0, 0.10) 0 -28px 0 0,
+                rgba(0,0,0, 0.14) 16px -22px 0 0,
+                rgba(0,0,0, 0.18) 26px -9px 0 0,
+                rgba(0,0,0, 0.22) 26px 9px 0 0,
+                rgba(0,0,0, 0.26) 16px 22px 0 0,
+                rgba(0,0,0, 0.30) 0 28px 0 0,
+                    rgba(0,0,0, 0.34) -16px 22px 0 0,
+                    rgba(0,0,0, 0.38) -26px 9px 0 0,
+                    rgba(0,0,0, 0.02) -26px -9px 0 0,
+                    rgba(0,0,0, 0.06) -16px -22px 0 0
+        );
+    }
+
+    80% {
+        @include box-shadow(
+                rgba(0,0,0, 0.06) 0 -28px 0 0,
+                rgba(0,0,0, 0.10) 16px -22px 0 0,
+                rgba(0,0,0, 0.14) 26px -9px 0 0,
+                rgba(0,0,0, 0.18) 26px 9px 0 0,
+                rgba(0,0,0, 0.22) 16px 22px 0 0,
+                rgba(0,0,0, 0.26) 0 28px 0 0,
+                    rgba(0,0,0, 0.30) -16px 22px 0 0,
+                    rgba(0,0,0, 0.34) -26px 9px 0 0,
+                    rgba(0,0,0, 0.38) -26px -9px 0 0,
+                    rgba(0,0,0, 0.02) -16px -22px 0 0
+        );
+    }
+
+    90% {
+        @include box-shadow(
+                rgba(0,0,0, 0.02) 0 -28px 0 0,
+                rgba(0,0,0, 0.06) 16px -22px 0 0,
+                rgba(0,0,0, 0.10) 26px -9px 0 0,
+                rgba(0,0,0, 0.14) 26px 9px 0 0,
+                rgba(0,0,0, 0.18) 16px 22px 0 0,
+                rgba(0,0,0, 0.22) 0 28px 0 0,
+                    rgba(0,0,0, 0.26) -16px 22px 0 0,
+                    rgba(0,0,0, 0.30) -26px 9px 0 0,
+                    rgba(0,0,0, 0.34) -26px -9px 0 0,
+                    rgba(0,0,0, 0.38) -16px -22px 0 0
+        );
+    }
+
+    100% {
+        @include box-shadow(
+                rgba(0,0,0, 0.38) 0 -28px 0 0,
+                rgba(0,0,0, 0.02) 16px -22px 0 0,
+                rgba(0,0,0, 0.06) 26px -9px 0 0,
+                rgba(0,0,0, 0.10) 26px 9px 0 0,
+                rgba(0,0,0, 0.14) 16px 22px 0 0,
+                rgba(0,0,0, 0.18) 0 28px 0 0,
+                    rgba(0,0,0, 0.22) -16px 22px 0 0,
+                    rgba(0,0,0, 0.26) -26px 9px 0 0,
+                    rgba(0,0,0, 0.30) -26px -9px 0 0,
+                    rgba(0,0,0, 0.34) -16px -22px 0 0
+        );
+    }
+}
+
+@mixin circle-loader {
+    width: 10px;
+    height: 10px;
+    position: relative;
+
+    @include border-radius(5px);
+    @include animation(circle-loading 1.2s infinite);
+}
+

@@ -1,0 +1,6 @@
+.tmp
+.idea
+.sass-cache
+assets/js/components
+node_modules
+build

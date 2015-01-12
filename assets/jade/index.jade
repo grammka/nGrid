@@ -1,0 +1,29 @@
+doctype html
+html(ng-app="nGridTWMSApp", id="nGridTWMSApp")
+	head
+		title(ng-bind="currTitle.curr")
+		meta(charset="utf-8")
+		meta(name="fragment", content="!")
+
+		//link(rel="shortcut icon", href="data/img/favicon.ico", type="image/x-icon")
+		//link(rel="icon", href="data/img/favicon.ico", type="image/x-icon")
+
+		// build:css data/css/vendor.min.css
+		link(href="data/css/vendor.min.css", rel="stylesheet")
+		// endbuild
+
+		// build:css data/css/app.css
+		link(href="data/css/app.css", rel="stylesheet")
+		// endbuild
+
+		// build:js data/js/vendor.js
+		script(src='data/js/vendor.min.js')
+		// endbuild
+
+		// build:js data/js/app.js
+		script(src='data/js/app.js')
+		// endbuild
+
+	body
+
+		| 1111

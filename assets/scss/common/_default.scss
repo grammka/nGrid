@@ -1,0 +1,277 @@
+html,
+body {
+    height: 100%;
+}
+
+body{
+    position:relative;
+    margin: 0;
+    padding: 0;
+
+    -webkit-font-smoothing: antialiased !important;
+}
+
+*:focus {outline: none;}
+
+b,
+strong {
+    /*
+      Makes browsers agree.
+      IE + Opera = font-weight: bold.
+      Gecko + WebKit = font-weight: bolder.
+    */
+    font-weight: bold;
+}
+
+a {
+    text-decoration: none !important;
+    outline: none;
+
+    &:hover {
+        text-decoration: none;
+    }
+
+    &:active {
+        outline: none;
+    }
+
+    &:focus {
+        outline: none;
+    }
+}
+
+img {
+    border: 0;
+    color: transparent;
+    font-size: 0;
+    vertical-align: top;
+
+    /*
+      For IE.
+      http://css-tricks.com/ie-fix-bicubic-scaling-for-images
+    */
+    -ms-interpolation-mode: bicubic;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    /*
+      For IE6 + IE7:
+
+      "display: list-item" keeps bullets from
+      disappearing if hasLayout is triggered.
+    */
+    display: list-item;
+}
+
+input {
+    vertical-align: top;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    font: inherit;
+
+    &[type=submit] {
+        background: none;
+        cursor: pointer;
+    }
+}
+
+input,
+textarea,
+button {
+	outline: none !important;
+
+    &:focus {
+        //outline: none !important;
+    }
+
+    &:-webkit-autofill {
+        background: #fff !important;
+
+        &:focus {
+            background: #fff !important;
+        }
+    }
+}
+
+textarea {
+    resize: none;
+}
+
+button {
+	-webkit-font-smoothing: inherit;
+}
+
+table {
+    border: 0;
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+th,
+td,
+caption {
+    font-weight: normal;
+    vertical-align: top;
+    text-align: left;
+}
+
+td {
+    padding: 0;
+    border: 0;
+}
+
+
+
+
+
+/* Additional */
+
+.clear {
+    content : "";
+    line-height : 0;
+    height : 0;
+    display : block;
+    clear : both;
+    visibility : hidden;
+}
+
+.icon {
+    display: block;
+    line-height: 0;
+    vertical-align: top;
+    font-size: 0;
+}
+
+.icon_center {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+}
+
+
+/* Titles */
+
+@for $i from 1 through 6 {
+    .h_#{$i} {
+        font-size: #{28 - $i * 2}px;
+        display: block;
+    }
+}
+
+/* Horizontal line (hl) */
+
+.hl {
+	display: block;
+	height: 1px;
+	background: $default-border-color;
+}
+
+/* Padding horizontal */
+
+@for $i from 1 through 6 {
+    .hr_#{$i * 5} {
+        width: #{$i * 5}px;
+        @include display-inline-block;
+    }
+}
+
+/* Padding vertical */
+
+@for $i from 3 through 10 {
+    .vr_#{$i * 5} {
+        height: #{$i * 5}px;
+        display: block;
+    }
+}
+
+
+/* Types */
+
+.t-noselect {
+	@include no-select;
+}
+
+.t-hidden-input {
+    position: fixed;
+    left: -9999px;
+    z-index: -1;
+}
+
+.t-h100 {
+    height: 100%;
+}
+
+.t-pos_rev {
+    position: relative;
+}
+
+.t-center {
+    height: 100%;
+    margin: 0 auto;
+    position: relative;
+
+    &.t-fixed {
+        position: fixed;
+        left: 50%;
+        margin: 0 0 0 -490px;
+    }
+}
+
+.t-gradient {
+    filter: none;
+}
+
+.t-text_left {
+    text-align: left !important;
+}
+
+.t-text_right {
+    text-align: right !important;
+}
+
+.t-text_center {
+    text-align: center !important;
+}
+
+.t-text_error {
+    color: nth($red, 3);
+}
+
+.t-text_success {
+    color: nth($green, 3);
+}
+
+.t-cursor_pointer {
+    cursor: pointer !important;
+}
+
+
+/* Link */
+
+.t-link {
+    color: nth($blue, 3);
+    text-decoration: none;
+    cursor: pointer;
+
+    &:visited {
+        color: nth($blue, 3);
+    }
+
+    &:hover {
+        text-decoration: underline;
+        //color: nth($blue, 6);
+    }
+}
+
+.popover {
+    z-index: 9999 !important;
+}

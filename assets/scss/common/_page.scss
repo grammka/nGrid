@@ -1,0 +1,171 @@
+body {
+    background-color: $page-bg-color;
+    font: 14px/22px "Trebuchet MS", Tahoma, sans-serif;
+    color: $default-font-color;
+}
+
+#loading-bar-spinner {
+	display: none !important;
+}
+
+
+
+.box-sizing-normal {
+
+    label {
+        margin: 0;
+        font-weight: normal;
+    }
+
+    .mbtn, label, input {
+        @include box-sizing(content-box);
+    }
+}
+
+.b-inline-block {
+	position: relative;
+
+	@include display-inline-block;
+}
+
+
+
+/* Loaders */
+
+.b-inline-loader {
+    @include inline-loader;
+}
+
+.b-circle-loader {
+    @include circle-loader;
+}
+
+
+
+/* Shadow overlay */
+
+.b-shadow-overlay {
+    background: rgba(0,0,0, 0.4);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    opacity: 0;
+
+    @include transition(opacity 0.5s ease);
+}
+
+
+
+/* Content */
+
+
+.b-title,
+.b-small-title {
+	cursor: default;
+
+	font-weight: bold;
+
+	span {
+		padding-left: 8px;
+	}
+
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
+.b-title {
+    margin: 12px 0 8px;
+
+    font-size: 19px;
+}
+
+.b-title__info {
+	opacity: 0.5;
+}
+
+.b-small-title {
+    margin: 8px 0 5px;
+
+    font-size: 16px;
+}
+
+.b-wrapper {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+}
+
+.b-container {
+	padding: 20px 20px 20px 0;
+}
+
+.b-content {
+    background: #fff;
+    padding: 16px;
+    margin-bottom: 18px;
+    position: relative;
+
+    @include border-radius(3px);
+    @include box-shadow(#dee1e4 0 1px 1px);
+
+    p {
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.b-content__title,
+.b-content__small-title {
+    margin-bottom: 8px;
+	font-weight: bold;
+}
+
+.b-content__title {
+    font-size: 18px;
+}
+
+.b-content__small-title {
+    font-size: 15px;
+}
+
+.control-label {
+    a {
+        text-decoration: underline !important;
+    }
+}
+
+
+
+@media (min-width: 1025px) {
+
+    .b-container {
+        margin-left: 250px;
+
+	    .sidebar_minimized & {
+		    margin-left: 70px;
+	    }
+    }
+
+}
+	
+@media (max-width: 1024px) {
+
+    .b-container {
+        margin-left: 180px;
+
+	    .sidebar_minimized & {
+		    margin-left: 56px;
+	    }
+    }
+
+}
