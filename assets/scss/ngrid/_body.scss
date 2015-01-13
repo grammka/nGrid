@@ -1,0 +1,103 @@
+.ngrid__body__wrapper {
+	width: 100%;
+	margin-top: 1px;
+	min-height: 138px;
+	max-height: 464px;
+	overflow: scroll;
+}
+
+.ngrid__body {
+
+}
+
+.ngrid__row {
+	white-space: nowrap;
+
+	&:nth-child(even) {
+		background: $grid-row-even-bg-color;
+	}
+}
+
+.ngrid__row_last {
+
+	.ngrid__cell__container {
+		margin-bottom: 60px;
+	}
+}
+
+.ngrid__cell {
+	cursor: default;
+
+	.ngrid_disabled & {
+		background-color: #F0F0F0;
+	}
+
+	&.disabled {
+
+		.ngrid__cell__container {
+			background-color: #F0F0F0;
+		}
+
+		.ngrid__cell__textvalue {
+			color: #808080 !important;
+		}
+	}
+
+	&.focused {
+
+		.ngrid__cell__container {
+			background-color: nth($teal, 3);
+		}
+
+		.ngrid__cell__textvalue {
+			color: #fff !important;
+		}
+	}
+}
+
+.ngrid__cell__container {
+	height: 30px;
+	line-height: 30px;
+	border-right: 1px solid $grid-body-border-color;
+	border-bottom: 1px solid $grid-body-border-color;
+
+	@include box-sizing(border-box);
+}
+
+.ngrid__cell__textvalue {
+	overflow: hidden;
+	padding: 0 8px;
+
+	.ngrid_disabled & {
+		color: #808080;
+	}
+}
+
+.ngrid__cell__editor {
+
+	input {
+		width: 100%;
+		height: 29px;
+		padding: 0 8px;
+	}
+}
+
+.ngrid__cell__allocated-status {
+	width: 10px;
+	height: 10px;
+	background: #FF4444 !important;
+
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+
+	@include border-radius(5px);
+	@include no-select;
+}
+
+.ngrid__cell__allocated-status_allocated {
+	background: #72E235 !important;
+}

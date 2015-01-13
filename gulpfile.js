@@ -1,33 +1,45 @@
-var childProcess    = require('child_process'),
-	spawn           = childProcess.spawn,
-	gulp            = require('gulp'),
-	install         = require('gulp-install'),
-	plugins         = require('gulp-load-plugins')(),
-	mainBowerFiles  = require('main-bower-files'),
-	del             = require('del');
+var gulp                = require('gulp'),
+	install             = require('gulp-install'),
+	plugins             = require('gulp-load-plugins')(),
+	mainBowerFiles      = require('main-bower-files'),
+	del                 = require('del'),
+	historyApiFallback  = require('connect-history-api-fallback');
 
 
 
 // DIRECTORIES PATHS -----------------------------------------------------------------
 
 var production, rootDir, tmpDir;
-production = plugins.util.env.type === 'production';
+process.env['__IS_PROD__'] = production = plugins.util.env.prod || plugins.util.env.production;
 nonotify = plugins.util.env.nonotify;
-process.env['__TWMS_PROJECT_PATH__'] = "build";
-rootDir = process.env['__TWMS_PROJECT_PATH__'] + "/";
+process.env['__PROJECT_PATH__'] = "build";
+rootDir = process.env['__PROJECT_PATH__'] + "/";
 tmpDir = ".tmp/";
 
 
+function notifyFile(path) {
+	var _path = path;
+
+	return function(file) {
+		return _path + " generated: " + file.relative;
+	}
+}
+
 
 var paths = {
+	"jade": {
+		"source": {
+			dev: ["assets/jade/**/*.jade", "!assets/jade/**/_*.jade"],
+			prod: ["assets/jade/**/*.jade", "!assets/jade/**/_*.jade", "!assets/jade/index.jade"]
+		},
+		"dest": ""
+	},
 	"scss": {
 		"source": "assets/scss/**/*.scss",
-		"watch": "assets/scss/**/*.scss",
 		"dest": "data/css"
 	},
 	"js": {
 		"source": "assets/js/app/**/*.js",
-		"watch": "assets/js/app/**/*.js",
 		"dest": "data/js",
 		"name": "app.js"
 	},
@@ -36,7 +48,6 @@ var paths = {
 	},
 	"jsbower": {
 		"source": "assets/js/components",
-		"watch": "assets/js/components",
 		"dest": {
 			"js": "data/js",
 			"css": "data/css",
@@ -48,14 +59,8 @@ var paths = {
 			"css": "vendor.min.css"
 		}
 	},
-	"jade": {
-		"source": ["assets/jade/**/*.jade", "!assets/jade/**/_*.jade", "!assets/jade/index.jade"],
-		"watch": ["assets/jade/**/*.jade", "!assets/jade/**/index.jade"],
-		"dest": ""
-	},
 	"images": {
 		"source": "assets/img/**/*",
-		"watch": "assets/img/**/*",
 		"dest": "data/img",
 		"options": {
 			"progressive": true,
@@ -68,28 +73,17 @@ var paths = {
 	"fonts": {
 		"source": "assets/fonts/**/*",
 		"dest": "data/fonts"
-	},
-	"sounds": {
-		"source": "assets/sounds/**/*",
-		"dest": "data/sounds"
 	}
 };
 
-
-function notifyFile(path) {
-	var _path = path;
-
-	return function(file) {
-		return _path + " generated: " + file.relative;
-	}
-}
 
 
 
 // JADE -----------------------------------------------------
 
 gulp.task('jade', function() {
-	return gulp.src(paths.jade.source)
+	return gulp.src(production ? paths.jade.source.prod : paths.jade.source.dev)
+		.pipe(plugins.plumber({errorHandler: nonotify ? plugins.util.noop() : plugins.notify.onError("Error: <%= error.message %>")}))
 		.pipe(plugins.jade({pretty: true}))
 		.pipe(plugins.cached('jade-cache'))
 		.pipe(gulp.dest(rootDir + paths.jade.dest))
@@ -110,6 +104,7 @@ gulp.task('js', function() {
 			"includeContent": true,
 			"sourceRoot": "/sources/js"
 		}))
+		//.pipe(plugins.preprocess())
 		.pipe(gulp.dest((production ? tmpDir : rootDir) + paths.js.dest))
 		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("JS    ")));
 });
@@ -118,33 +113,32 @@ gulp.task('js', function() {
 // SASS -----------------------------------------------------
 
 gulp.task('sass', function() {
-	var sassResult =  gulp.src(paths.scss.source)
+	return gulp.src(paths.scss.source)
 		.pipe(plugins.plumber({errorHandler: nonotify ? plugins.util.noop() : plugins.notify.onError("Error: <%= error.message %>")}))
 		.pipe(plugins.rubySass({
-			"noCache": true,
 			"compass": true,
 			"style": production ? "compressed" : "compact",
-			"sourcemap=none": true
+			"sourcemap=none": true,
+			"check": true
 		}))
-		//.pipe(production ? plugins.util.noop() : plugins.sourcemaps.init({loadMaps: true}))
+		.pipe(production ? plugins.util.noop() : plugins.sourcemaps.init({loadMaps: true}))
 		.pipe(plugins.autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
-		//.pipe(production ? plugins.util.noop() : plugins.sourcemaps.write())
+		.pipe(production ? plugins.util.noop() : plugins.sourcemaps.write())
 		.pipe(gulp.dest((production ? tmpDir : rootDir) + paths.scss.dest))
 		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("SASS  ")));
-
-	return sassResult;
 });
 
 
 // BOWER ----------------------------------------------------
 
 gulp.task('vendor', function() {
-	var js, css, fonts, images;
+	var js, coffee, css, fonts, images;
 
-	js = plugins.filter(['**/*.js']);
-	css = plugins.filter(['**/*.css']);
-	fonts = plugins.filter(['**/*.svg', '**/*.eot', '**/*.ttf', '**/*.woff']);
-	images = plugins.filter(['**/*.gif', '**/*.png', '**/*.jpeg', '**/*.jpg']);
+	js      = plugins.filter(['**/*.js']);
+	coffee  = plugins.filter(['**/*.coffee']);
+	css     = plugins.filter(['**/*.css']);
+	fonts   = plugins.filter(['**/*.svg', '**/*.eot', '**/*.ttf', '**/*.woff']);
+	images  = plugins.filter(['**/*.gif', '**/*.png', '**/*.jpeg', '**/*.jpg']);
 
 	return gulp.src(
 		mainBowerFiles({
@@ -154,11 +148,14 @@ gulp.task('vendor', function() {
 				"bowerJson": __dirname + "/bower.json"
 			}
 		})
-		.concat(paths.jslibs.source)
+			.concat(paths.jslibs.source)
 	)
+		.pipe(coffee)
+		.pipe(plugins.concat('all.coffee'))
+		.pipe(plugins.coffee({bare: true}))
+		.pipe(coffee.restore())
 
 		.pipe(js)
-		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("VENDOR JS ")))
 		.pipe(production ? plugins.util.noop() : plugins.sourcemaps.init())
 		.pipe(plugins.concat(paths.jsbower.name.js))
 		.pipe(production ? plugins.uglify({mangle: false}) : plugins.util.noop())
@@ -171,7 +168,6 @@ gulp.task('vendor', function() {
 		.pipe(js.restore())
 
 		.pipe(css)
-		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("VENDOR CSS ")))
 		.pipe(production ? plugins.util.noop() : plugins.sourcemaps.init())
 		.pipe(plugins.concat(paths.jsbower.name.css))
 		.pipe(plugins.minifyCss())
@@ -185,13 +181,13 @@ gulp.task('vendor', function() {
 
 		.pipe(fonts)
 		.pipe(gulp.dest(rootDir + paths.jsbower.dest.fonts))
-		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("VENDOR FONTS ")))
 		.pipe(fonts.restore())
 
 		.pipe(images)
 		.pipe(gulp.dest(rootDir + paths.jsbower.dest.images))
-		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("VENDOR IMAGES ")))
-		.pipe(images.restore());
+		.pipe(images.restore())
+
+		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("VENDOR")));
 });
 
 
@@ -217,23 +213,19 @@ gulp.task('fonts', function() {
 });
 
 
-// SOUNDS ----------------------------------------------------
-
-gulp.task('sounds', function() {
-	return gulp.src(paths.sounds.source)
-		.pipe(gulp.dest(rootDir + paths.sounds.dest))
-		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("SOUNDS ")));
-});
-
-
 // SERVER ---------------------------------------------------
 
-gulp.task('server', function() {
-	spawn('mvn', ['clean'], {
-		stdio: 'inherit'
-	});
-	spawn('mvn', ['tomcat7:run', '-f', '../../../../pom.xml'], {
-		stdio: 'inherit'
+var EXPRESS_PORT = 5010;
+var EXPRESS_ROOT = __dirname + "/" + rootDir;
+
+gulp.task('server', function () {
+	plugins.connect.server({
+		root: EXPRESS_ROOT,
+		port: EXPRESS_PORT,
+		livereload: true,
+		middleware: function() {
+			return [historyApiFallback];
+		}
 	});
 });
 
@@ -241,28 +233,26 @@ gulp.task('server', function() {
 // COMPONENTS -----------------------------------------------
 
 gulp.task('bower-install', function() {
-	return gulp.src([__dirname + "/bower.json"]).pipe(install());
+	gulp.src([__dirname + "/bower.json"]).pipe(install());
 });
 
 gulp.task('npm-install', function() {
-	return gulp.src([__dirname + "/package.json"]).pipe(install());
+	gulp.src([__dirname + "/package.json"]).pipe(install());
 });
 
 
 // CLEAN ---------------------------------------------------
 
-gulp.task('clean', function(cb) {
-	return del("build", {force: true}, function(err) {
-		if (err) plugins.util.log('CLEAN TASK ERROR: ', err);
-
-		if (cb) cb();
+gulp.task('clean', function() {
+	del(rootDir + "**/*", {force: true}, function(err) {
+		if (err) plugins.util.log(err);
 	});
 });
 
 
 // REVISION REPLACE ----------------------------------------
 
-gulp.task('index-jsp', function () {
+gulp.task('revision', function () {
 	if (production) {
 		var userefAssets = plugins.useref.assets({searchPath: tmpDir});
 
@@ -273,15 +263,8 @@ gulp.task('index-jsp', function () {
 			.pipe(userefAssets.restore())
 			.pipe(plugins.useref())
 			.pipe(plugins.revReplace())
-			.pipe(plugins.extReplace('.jsp'))
 			.pipe(gulp.dest(rootDir));
 
-	} else {
-		return gulp.src("assets/jade/index.jade")
-			.pipe(plugins.jade({pretty: true}))
-			.pipe(plugins.extReplace('.jsp'))
-			.pipe(gulp.dest(rootDir + paths.jade.dest))
-			.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("JADE  ")));
 	}
 });
 
@@ -293,50 +276,29 @@ gulp.task('index-jsp', function () {
 
 gulp.task('update-components', ['bower-install', 'npm-install']);
 
-gulp.task('build-vendor', ['update-components'], function () {
-	gulp.start('vendor');
+gulp.task('build-assets', ['jade', 'js', 'sass', 'images', 'fonts'], function() {
+	gulp.start('revision');
 });
 
-gulp.task('build-assets', ['jade', 'js', 'sass', 'images', 'fonts', 'sounds'], function() {
-	del(['/tmp/gulp-ruby-sass'], {force: true}, function(err) {
-		if (err) {
-			console.log(err);
-		} else {
-			console.log('GULP-RUBY-SASS DELETED !!!');
-		}
-	});
+gulp.task('build-vendor', ['vendor'], function () {
+	gulp.start('build-assets');
 });
 
-gulp.task('build-index', ['build-vendor', 'build-assets'], function() {
-	gulp.start('index-jsp');
-});
-
-gulp.task('build', function() {
-	del([rootDir + "**/*", "!" + rootDir +"WEB-INF/**"], {force: true}, function() {
-		gulp.start('build-index');
-	});
+gulp.task('build', ['clean', 'update-components'], function() {
+	gulp.start('build-vendor');
 });
 
 gulp.task('buildwatch', ['build'], function() {
 	gulp.start('watch');
 });
 
-
-gulp.task('banana', ['build'], function() {
-	gulp.start('watch');
-	gulp.start('server');
-});
-
-
-gulp.task('watch', function() {
-	gulp.watch(paths.jade.watch, ['jade']);
-	gulp.watch(["assets/jade/index.jade", "assets/jade/templates/*.jade"], ['index-jsp']);
-	gulp.watch(paths.images.watch, ['images']);
-	gulp.watch(paths.scss.watch, ['sass']);
-	gulp.watch(paths.js.watch, ['js']);
-	gulp.watch(paths.jsbower.watch, ['vendor']);
+gulp.task('watch', ['server'], function() {
+	gulp.watch(paths.jade.source.dev[0], ['jade']);
+	gulp.watch(paths.images.source, ['images']);
+	gulp.watch(paths.scss.source, ['sass']);
+	gulp.watch(paths.js.source, ['js']);
+	gulp.watch(paths.jsbower.source, ['vendor']);
 	gulp.watch(__dirname + '/bower.json', ['bower-install'], function() {
 		gulp.start('vendor');
 	});
 });
-

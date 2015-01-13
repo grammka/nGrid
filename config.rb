@@ -1,4 +1,4 @@
-project_path = File.dirname(__FILE__) + "/" + ENV['__TWMS_PROJECT_PATH__'] + "/"
+project_path = File.dirname(__FILE__) + "/" + ENV['__PROJECT_PATH__'] + "/"
 http_path = "/"
 css_dir = "build/data/css"
 sass_dir = "assets/scss"

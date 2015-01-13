@@ -1,5 +1,8 @@
 body {
-    background-color: $page-bg-color;
+	background-color: $page-bg-color;
+}
+
+body, button, input {
     font: 14px/22px "Trebuchet MS", Tahoma, sans-serif;
     color: $default-font-color;
 }
