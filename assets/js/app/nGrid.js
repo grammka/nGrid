@@ -1,7 +1,7 @@
 (function($, window) {
 
 	function NGrid(container, options) {
-		var HOTKEYS, UTILS, DEFAULT_OPTIONS;
+		var HOTKEYS, UTILS, TEMPLATES, DEFAULT_OPTIONS;
 		var elems, gridOptions, gridModel;
 
 		elems = {};
@@ -23,6 +23,10 @@
 					return time++;
 				}
 			})()
+		};
+
+		TEMPLATES = {
+
 		};
 
 		DEFAULT_OPTIONS = {
@@ -236,9 +240,7 @@
 				headerHtml += '\
 					<div class="ngrid__header__cell ngrid__col_' + i + '">\
 						<div class="ngrid__header__cell__text">' + column.displayName + '</div>\
-						<div class="ngrid__header__cell__grip">\
-							\
-						</div>\
+						<div class="ngrid__header__cell__grip js-ngrid__header__cell__grip"></div>\
 					</div>\
 				';
 			}
@@ -318,6 +320,43 @@
 			return cellHtml;
 		}
 
+		function initHeaderGrip() {
+			var gripGrabbed = false,
+				columnIndex,
+				offsetLeft;
+
+			function leaveGrip() {
+				gripGrabbed = false;
+				offsetLeft = null;
+			}
+
+			function dragGrip(e) {
+				if (gripGrabbed) {
+					var width = e.clientX - offsetLeft;
+
+					gridOptions.columnDefs[columnIndex].width = width;
+
+					generateStylesheets();
+				}
+			}
+
+			function grabGrip() {
+				gripGrabbed = true;
+				columnIndex = $(this).parent().index();
+				offsetLeft = $(this).parent().offset().left;
+
+				console.log(columnIndex, offsetLeft);
+			}
+
+			$('.js-ngrid__header__cell__grip').on('mousedown', grabGrip);
+
+			$(document).on({
+				'mouseup.nGrid.grip': leaveGrip,
+				'mouseleave.nGrid.grip': leaveGrip,
+				'mousemove.nGrid.grip': dragGrip
+			});
+		}
+
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////////
@@ -366,7 +405,7 @@
 				if (typeof newPosition != 'undefined') elems.$bodyWrapper[0].scrollLeft = newPosition;
 
 			} else if (scrollOptions.vertical) {
-				var gridScrollTop = gridOptions.$body[0].scrollTop,
+				var gridScrollTop = elems.$bodyWrapper[0].scrollTop,
 					cellInsideOffsetTop = gridModel.focusedCell.$elm[0].offsetTop,
 					cellHeight = gridOptions.rowHeight;
 
@@ -382,7 +421,7 @@
 					}
 				}
 
-				if (typeof newPosition != 'undefined') gridOptions.$body[0].scrollTop = newPosition;
+				if (typeof newPosition != 'undefined') elems.$bodyWrapper[0].scrollTop = newPosition;
 			}
 		}
 
@@ -549,6 +588,7 @@
 			getVisibleColumnDefs();
 			setEvents();
 			appendHeaderHtml();
+			initHeaderGrip();
 			generateStylesheets();
 
 			if (gridOptions.urls.loadData) {
