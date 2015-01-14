@@ -22,7 +22,7 @@
 	}
 
 	&:last-child {
-		margin-bottom: 40px;
+		margin-bottom: 60px;
 	}
 }
 
@@ -41,6 +41,7 @@
 	@include box-sizing(border-box);
 	@include display-inline-block;
 
+	.ngrid_disabled &,
 	&.disabled {
 		background-color: #F0F0F0;
 
@@ -52,6 +53,12 @@
 
 		color: #fff !important;
 	}
+}
+
+.ngrid__cell_disabled {
+	background-color: #F0F0F0;
+
+	color: #808080 !important;
 }
 
 .ngrid__remove-row-btn {
@@ -75,6 +82,10 @@
 
 	&:active {
 		background: darken(#FF4646, 30%);
+	}
+
+	.ngrid_disabled & {
+		display: none;
 	}
 }
 

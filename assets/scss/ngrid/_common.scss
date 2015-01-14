@@ -5,6 +5,7 @@ $grid-row-even-bg-color: #fafafa;
 
 .ngrid {
 	overflow: visible;
+	position: relative;
 
 	@include box-shadow($default-border-color 0 0 0 1px);
 	@include border-radius(3px);

@@ -109,7 +109,7 @@
 			});
 		}
 
-		function generateGridRowData(data) {
+		function generateRowData(data) {
 			var row,
 				entity = angular.copy(data || gridOptions.defaultEntity);
 
@@ -198,11 +198,11 @@
 			 }
 		 ]
 		 */
-		function generateGridData(data) {
+		function generateRowsData(data) {
 			generateDefaultEntity(data[0]);
 
 			for (var i = 0; i < data.length; i++) {
-				data[i] = generateGridRowData(data[i]);
+				data[i] = generateRowData(data[i]);
 			}
 
 			return data;
@@ -227,7 +227,7 @@
 			// needed to calculate scroll amount on arrows navigate
 			gridOptions.gridWrapperWidth = elems.$bodyWrapper.width();
 			// getting viewport height using rows counts because can't catch when rows will be rendered to get .height()
-			gridOptions.gridWrapperHeight = (gridModel.data.length > gridOptions.visibleRowsCount ? gridOptions.visibleRowsCount : gridModel.data.length) * gridOptions.rowHeight;
+			gridOptions.gridWrapperHeight = (gridModel.rows.length > gridOptions.visibleRowsCount ? gridOptions.visibleRowsCount : gridModel.rows.length) * gridOptions.rowHeight;
 		}
 
 
@@ -271,8 +271,9 @@
 				cellIndex = 0;
 
 			for (var i = 0; i < data.length; i++) {
-				var columnDefs = gridOptions.columnDefs[i],
-					cellValueTemplate;
+				var columnDefs, cellIndexClass, isDisabledClass, cellValueTemplate;
+
+				columnDefs = gridOptions.columnDefs[i];
 
 				if (columnDefs && !columnDefs.hidden) {
 					/*
@@ -284,10 +285,11 @@
 						cellValueTemplate = data[i].value || '';
 					}
 
+					cellIndexClass = ' ngrid__col_' + cellIndex;
+					isDisabledClass = !columnDefs.editModel ? ' ngrid__cell_disabled' : '';
+
 					cellHtml += '\
-						<div class="ngrid__cell' + (' ngrid__col_' + cellIndex) + (!columnDefs.editModel ? ' ngrid__cell_disabled' : '') + '">\
-							' + cellValueTemplate + '\
-						</div>\
+						<div class="ngrid__cell' + cellIndexClass + isDisabledClass + '">' + cellValueTemplate + '</div>\
 					';
 				}
 
@@ -332,8 +334,6 @@
 				gripGrabbed = true;
 				columnIndex = $(this).parent().index();
 				offsetLeft = $(this).parent().offset().left;
-
-				console.log(columnIndex, offsetLeft);
 			}
 
 			$('.js-ngrid__header__cell__grip').on('mousedown', grabGrip);
@@ -396,10 +396,10 @@
 			}
 
 			if (gridModel.currentRow < 0) {
-				gridModel.currentRow = gridModel.data.length - 1;
+				gridModel.currentRow = gridModel.rows.length - 1;
 				scrollOptions.last = true;
 			}
-			if (gridModel.currentRow == gridModel.data.length) {
+			if (gridModel.currentRow == gridModel.rows.length) {
 				gridModel.currentRow = 0;
 				scrollOptions.first = true;
 			}
@@ -472,7 +472,7 @@
 				$('.ngrid__cell.focused').removeClass('focused');
 			}
 
-			gridModel.focusedCell = gridModel.data[gridModel.currentRow].cells[gridModel.currentCol];
+			gridModel.focusedCell = gridModel.rows[gridModel.currentRow].cells[gridModel.currentCol];
 			gridModel.focusedCell.focused = true;
 
 			if (!gridModel.focusedCell.$elm) {
@@ -582,7 +582,7 @@
 			var $row = $(this).closest(elems.row);
 
 			setTimeout(function() {
-				gridModel.data.splice(gridModel.currentRow, 1);
+				gridModel.rows.splice(gridModel.currentRow, 1);
 				blurCell();
 				$row.remove();
 			}, 10);
@@ -591,9 +591,15 @@
 		// Add New Row ===========================================================================
 
 		function addRow() {
-			var data = generateGridRowData();
+			if (gridModel.isGridDisabled) {
+				return
+			}
 
-			gridModel.data.push(data);
+			var data = generateRowData();
+
+			data.dirty = true;
+
+			gridModel.rows.push(data);
 			appendRowHtml([data]);
 
 			setTimeout(function() {
@@ -601,10 +607,38 @@
 			}, 10);
 		}
 
+		// Toggle Lock ==========================================================================
+
+		function toggleLockBtn() {
+			if (gridModel.isGridDisabled) {             // unlock grid
+				gridModel.isGridDisabled = false;
+
+				elems.$lockBtn
+					.removeClass('b-btn_red')
+					.addClass('b-btn_green')
+					.attr('data-hint', 'закрыть');
+			} else {                                    // lock grid
+				gridModel.isGridDisabled = true;
+
+				elems.$lockBtn
+                    .removeClass('b-btn_green')
+                    .addClass('b-btn_red')
+                    .attr('data-hint', 'открыть');
+			}
+
+			elems.$addRowBtn.toggleClass('disabled');
+			elems.$saveBtn.toggleClass('disabled');
+			elems.$grid.toggleClass('ngrid_disabled');
+		}
+
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////
 		// Init
+
+		function updateHtmlAndCssViaConfigs() {
+
+		}
 
 		function setEvents() {
 			elems.$grid.on('click', focusGrid);
@@ -614,6 +648,7 @@
 
 			elems.$bodyWrapper.on('scroll', onBodyScroll);
 
+			elems.$lockBtn.on('click', toggleLockBtn);
 			elems.$addRowBtn.on('click', addRow);
 
 			$(document).on('keydown.nGrid.navigation', navigate);
@@ -621,10 +656,10 @@
 
 		function loadData() {
 			$.getJSON('/data/js/data.json', function(response) {
-				gridModel.data = generateGridData(response.items);
+				gridModel.rows = generateRowsData(response.items);
 
 				getGridBodySizes();
-				appendRowHtml(gridModel.data);
+				appendRowHtml(gridModel.rows);
 			});
 
 			return;
@@ -639,13 +674,13 @@
 				},
 				type: 'POST',
 				success: function(response) {
-					gridModel.data = generateGridData(response.items);
+					gridModel.rows = generateRowsData(response.items);
 					gridOptions.pagination.totalServerItems = response.totalItemsCount;
 					gridOptions.pagination.maxPage = Math.ceil(gridOptions.pagination.totalServerItems / gridOptions.pagination.pageSize);
 
 					getGridBodySizes();
 
-					gridOptions.events.onDataLoaded(gridModel.data);
+					gridOptions.events.onDataLoaded(gridModel.rows);
 				}
 			});
 		}
@@ -654,7 +689,8 @@
 			gridOptions = extendOptions(options);
 
 			gridModel = {
-				data: [],
+				rows: [],
+				dirtyRows: [],
 				isGridDisabled: true,
 				isGridFocused: false,   // grid focused status; needed for navigation and enter editing mode in cell
 				currentRow: null,
@@ -666,20 +702,31 @@
 				}
 			};
 
-			elems.$container = $(container);
-			elems.$grid = $('<div class="ngrid" />').appendTo(elems.$container);
-			elems.$grid.attr('id', 'ngrid-' + gridOptions.id);
-			elems.$headerWrapper = $('<div class="ngrid__header__wrapper"></div>').appendTo(elems.$grid);
-			elems.$header = $('<div class="ngrid__header"></div>').appendTo(elems.$headerWrapper);
-			elems.$bodyWrapper = $('<div class="ngrid__body__wrapper"></div>').appendTo(elems.$grid);
-			elems.$body = $('<div class="ngrid__body"></div>').appendTo(elems.$bodyWrapper);
-			elems.$footer = $('<div class="ngrid__footer" />').appendTo(elems.$grid);
-			elems.$footerMenu = $('<div class="ngrid__menu b-btns-list b-btns_s-list" />').appendTo(elems.$footer);
-			elems.$lockBtn = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s hint--top"><i class="icon icon-lock"></i></button>').appendTo(elems.$footerMenu);
-			elems.$addRowBtn = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s b-btn_blue">добавить строку</button>').appendTo(elems.$footerMenu);
-			elems.$saveBtn = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s b-btn_green">сохранить</button>').appendTo(elems.$footerMenu);
-			elems.$footerRPart = $('<div class="grid__footer__r-part" />').appendTo(elems.$footer);
+			elems.$container            = $(container);
+			elems.$grid                 = $('<div class="ngrid' + (gridModel.isGridDisabled ? ' ngrid_disabled' : '') + '" id="ngrid-' + gridOptions.id + '" />').appendTo(elems.$container);
+			elems.$confirmOverlay       = $('<div class="ngrid__confirm__overlay"></div>').appendTo(elems.$grid);
+            elems.$confirm              = $('<div class="ngrid__confirm"><div class="ngrid__confirm__header">Вы уверены?</div></div>').appendTo(elems.$confirmOverlay);
+            elems.$confirmConfirmBtn    = $('<div class="ngrid__confirm__confirm-btn b-btn b-btn_full b-btn_m b-btn_green">Удалить</div>').appendTo(elems.$confirm);
+            elems.$confirmCancelBtn     = $('<div class="ngrid__confirm__cancel-btn b-btn b-btn_full b-btn_m b-btn_red">Отмена</div>').appendTo(elems.$confirm);
+			elems.$headerWrapper        = $('<div class="ngrid__header__wrapper"></div>').appendTo(elems.$grid);
+			elems.$header               = $('<div class="ngrid__header"></div>').appendTo(elems.$headerWrapper);
+			elems.$bodyWrapper          = $('<div class="ngrid__body__wrapper"></div>').appendTo(elems.$grid);
+			elems.$body                 = $('<div class="ngrid__body"></div>').appendTo(elems.$bodyWrapper);
+			elems.$footer               = $('<div class="ngrid__footer" />').appendTo(elems.$grid);
+			elems.$footerMenu           = $('<div class="ngrid__menu b-btns-list b-btns_s-list" />').appendTo(elems.$footer);
+			elems.$lockBtn              = $('\
+											<button \
+												class="ngrid__menu__item b-btn b-btn_' + (gridModel.isGridDisabled ? 'red' : 'green') + ' b-btn_full b-btn_s hint--top"\
+												data-hint="' + (gridModel.isGridDisabled ? 'открыть' : 'закрыть') + '"\
+											>\
+												<i class="icon icon-lock"></i>\
+											</button>\
+										').appendTo(elems.$footerMenu);
+			elems.$addRowBtn            = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s b-btn_blue' + (gridModel.isGridDisabled ? ' disabled' : '') + '">добавить строку</button>').appendTo(elems.$footerMenu);
+			elems.$saveBtn              = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s b-btn_green' + (gridModel.isGridDisabled ? ' disabled' : '') + '">сохранить</button>').appendTo(elems.$footerMenu);
+			elems.$footerRPart          = $('<div class="grid__footer__r-part" />').appendTo(elems.$footer);
 
+			updateHtmlAndCssViaConfigs();
 			getVisibleColumnDefs();
 			setEvents();
 			appendHeaderHtml();
@@ -691,7 +738,7 @@
 			} else if (gridOptions.data !== null) {
 				//$scope.$watch('options.data', function(newVal, oldVal) {
 				//	if (newVal && newVal != oldVal) {
-				//		gridModel.data = generateGridData(gridOptions.data);
+				//		gridModel.rows = generateRowsData(gridOptions.data);
 				//		getGridBodySizes();
 				//	}
 				//});
@@ -722,6 +769,6 @@ $(function() {
 		columnDefs: tableColumnDefs
 	};
 
-	var nGrid = new NGrid('#grid', gridOptions);
+	new NGrid('#grid', gridOptions);
 
 });
