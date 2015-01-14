@@ -358,6 +358,16 @@
 			elems.$header.css('margin-left', -this.scrollLeft);
 		}
 
+		function getColumnsCount() {
+			var length = gridOptions.visibleColumnDefs.length;
+
+			if (gridOptions.urls.remove) {
+				length++;
+			}
+
+			return length;
+		}
+
 		// Navigation ===============================================================================
 
 		function navigate(e) {
@@ -394,10 +404,10 @@
 				scrollOptions.first = true;
 			}
 			if (gridModel.currentCol < 0) {
-				gridModel.currentCol = gridOptions.visibleColumnDefs.length - 1;
+				gridModel.currentCol = getColumnsCount() - 1;
 				scrollOptions.last = true;
 			}
-			if (gridModel.currentCol == gridOptions.visibleColumnDefs.length) {
+			if (gridModel.currentCol == getColumnsCount()) {
 				gridModel.currentCol = 0;
 				scrollOptions.first = true;
 			}
@@ -423,22 +433,6 @@
 				} else if (scrollOptions.last) {
 					newPosition = 10000;
 				} else {
-					/*
-
-					 |<--  cellInsideOffsetLeft  -->|<- cellWidth ->|
-					 .						        .               .
-					 ......................_____________________________ . ___           .
-					 :		             |                              .    |          .
-					 :		             |                              .____|__________.
-					 :		             |                              |    |          |
-					 :		             |                              |____|__________|
-					 :		             |                                   |
-					 :....................|___________________________________|
-					 .					 .                                   .
-					 .					 .                                   .
-					 |<- gridScrollLeft ->|<- gridOptions.gridWrapperWidth  ->|
-
-					 */
 					if (cellInsideOffsetLeft + cellWidth > gridScrollLeft + gridOptions.gridWrapperWidth) {
 						newPosition = cellInsideOffsetLeft;
 					} else if (cellInsideOffsetLeft < gridScrollLeft) {
