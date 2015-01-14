@@ -350,7 +350,61 @@
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// Methods
 
+		function focusGrid() {
+			gridModel.isGridFocused = true;
+		}
+
+		function onBodyScroll() {
+			elems.$header.css('margin-left', -this.scrollLeft);
+		}
+
 		// Navigation ===============================================================================
+
+		function navigate(e) {
+			if (!gridModel.isGridFocused) return;
+			if (!~[HOTKEYS.left, HOTKEYS.up, HOTKEYS.right, HOTKEYS.down].indexOf(e.keyCode)) return;
+
+			e.preventDefault();
+
+			var scrollOptions = {};
+
+			if (e.keyCode == HOTKEYS.left) {
+				gridModel.currentCol--;
+				scrollOptions.horizontal = true;
+			}
+			if (e.keyCode == HOTKEYS.up) {
+				gridModel.currentRow--;
+				scrollOptions.vertical = true;
+			}
+			if (e.keyCode == HOTKEYS.right) {
+				gridModel.currentCol++;
+				scrollOptions.horizontal = true;
+			}
+			if (e.keyCode == HOTKEYS.down) {
+				gridModel.currentRow++;
+				scrollOptions.vertical = true;
+			}
+
+			if (gridModel.currentRow < 0) {
+				gridModel.currentRow = gridModel.data.length - 1;
+				scrollOptions.last = true;
+			}
+			if (gridModel.currentRow == gridModel.data.length) {
+				gridModel.currentRow = 0;
+				scrollOptions.first = true;
+			}
+			if (gridModel.currentCol < 0) {
+				gridModel.currentCol = gridOptions.visibleColumnDefs.length - 1;
+				scrollOptions.last = true;
+			}
+			if (gridModel.currentCol == gridOptions.visibleColumnDefs.length) {
+				gridModel.currentCol = 0;
+				scrollOptions.first = true;
+			}
+
+			changeCurrentCell();
+			scrollGrid(scrollOptions);
+		}
 
 		function scrollGrid(scrollOptions) {
 			var newPosition;
@@ -540,68 +594,35 @@
 			}, 10);
 		}
 
+		// Add New Row ===========================================================================
+
+		function addRow() {
+			var data = generateGridRowData();
+
+			gridModel.data.push(data);
+			appendRowHtml([data]);
+
+			setTimeout(function() {
+				elems.$bodyWrapper[0].scrollTop = 10000;
+			}, 10);
+		}
+
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////
 		// Init
 
 		function setEvents() {
-			elems.$bodyWrapper.on('scroll', function() {
-				elems.$header.css('margin-left', -this.scrollLeft);
-			});
-
-			elems.$grid.on('click', function() {
-				gridModel.isGridFocused = true;
-			});
+			elems.$grid.on('click', focusGrid);
 			elems.$grid.on('click', elems.cell, focusCell);
 			elems.$grid.on('dblclick', elems.cell, enterEditCellMode);
 			elems.$grid.on('click', elems.removeRowBtn, removeRow);
 
-			$(document).on('keydown.nGrid.navigation', function(e) {
-				if (!gridModel.isGridFocused) return;
-				if (!~[HOTKEYS.left, HOTKEYS.up, HOTKEYS.right, HOTKEYS.down].indexOf(e.keyCode)) return;
+			elems.$bodyWrapper.on('scroll', onBodyScroll);
 
-				e.preventDefault();
+			elems.$addRowBtn.on('click', addRow);
 
-				var scrollOptions = {};
-
-				if (e.keyCode == HOTKEYS.left) {
-					gridModel.currentCol--;
-					scrollOptions.horizontal = true;
-				}
-				if (e.keyCode == HOTKEYS.up) {
-					gridModel.currentRow--;
-					scrollOptions.vertical = true;
-				}
-				if (e.keyCode == HOTKEYS.right) {
-					gridModel.currentCol++;
-					scrollOptions.horizontal = true;
-				}
-				if (e.keyCode == HOTKEYS.down) {
-					gridModel.currentRow++;
-					scrollOptions.vertical = true;
-				}
-
-				if (gridModel.currentRow < 0) {
-					gridModel.currentRow = gridModel.data.length - 1;
-					scrollOptions.last = true;
-				}
-				if (gridModel.currentRow == gridModel.data.length) {
-					gridModel.currentRow = 0;
-					scrollOptions.first = true;
-				}
-				if (gridModel.currentCol < 0) {
-					gridModel.currentCol = gridOptions.visibleColumnDefs.length - 1;
-					scrollOptions.last = true;
-				}
-				if (gridModel.currentCol == gridOptions.visibleColumnDefs.length) {
-					gridModel.currentCol = 0;
-					scrollOptions.first = true;
-				}
-
-				changeCurrentCell();
-				scrollGrid(scrollOptions);
-			});
+			$(document).on('keydown.nGrid.navigation', navigate);
 		}
 
 		function loadData() {
