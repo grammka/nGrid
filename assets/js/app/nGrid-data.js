@@ -198,11 +198,6 @@ var tableColumnDefs = [{
 	editableCellTemplate: null,  // cellTemplates.date
 	width: 190
 }, {
-	field: 'remove',
-	displayName: '',
-	cellTemplate: cellTemplates.remove,
-	width: 20
-}, {
 	field: 'unitId',
 	hidden: true
 }, {

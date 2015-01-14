@@ -4,7 +4,11 @@
 		var HOTKEYS, UTILS, TEMPLATES, DEFAULT_OPTIONS;
 		var elems, gridOptions, gridModel;
 
-		elems = {};
+		elems = {
+			row: '.ngrid__row',
+			cell: '.ngrid__cell',
+			removeRowBtn: '.ngrid__remove-row-btn'
+		};
 
 		HOTKEYS = {
 			'up':       38,
@@ -281,13 +285,24 @@
 					}
 
 					cellHtml += '\
-						<div class="ngrid__cell js-ngrid__cell' + (' ngrid__col_' + cellIndex) + (!columnDefs.editModel ? ' ngrid__cell_disabled' : '') + '">\
+						<div class="ngrid__cell' + (' ngrid__col_' + cellIndex) + (!columnDefs.editModel ? ' ngrid__cell_disabled' : '') + '">\
 							' + cellValueTemplate + '\
 						</div>\
 					';
 				}
 
 				cellIndex++;
+			}
+
+			/*
+			 Add remove button cell if Remove Url exist
+			 */
+			if (gridOptions.urls.remove) {
+				cellHtml += '\
+					<div class="ngrid__cell">\
+						<div class="ngrid__remove-row-btn">&times;</div>\
+					</div>\
+				';
 			}
 
 			return cellHtml;
@@ -403,36 +418,40 @@
 		function changeCurrentCell() {
 			// Clean previous focused Cell
 			if (gridModel.focusedCell) {
-				gridModel.focusedCell.editing = false;
+				//gridModel.focusedCell.editing = false;
 				gridModel.focusedCell.focused = false;
 
-				$('.js-ngrid__cell.focused').removeClass('focused');
+				$('.ngrid__cell.focused').removeClass('focused');
 			}
 
 			gridModel.focusedCell = gridModel.data[gridModel.currentRow].cells[gridModel.currentCol];
 			gridModel.focusedCell.focused = true;
 
-			if (!gridModel.focusedCell.$el) {
-				gridModel.focusedCell.$elm = elems.$grid.find('tr').eq(gridModel.currentRow).find('td').eq(gridModel.currentCol);
+			if (!gridModel.focusedCell.$elm) {
+				gridModel.focusedCell.$elm =
+					elems.$grid
+						.find(elems.row).eq(gridModel.currentRow)
+						.find(elems.cell).eq(gridModel.currentCol);
 			}
 
 			gridModel.focusedCell.$elm.addClass('focused');
 		}
 
 		function focusCell() {
-			var row, col;
+			var rowIndex, colIndex;
 
-			row = $(this).parents('tr').eq(0).index();
-			col = $(this).index();
+			rowIndex = $(this).closest(elems.row).index();
+			colIndex = $(this).index();
 
-			if (gridModel.currentRow == row && gridModel.currentCol == col) {
-				return;
-			}
-
-			gridModel.currentRow = row;
-			gridModel.currentCol = col;
+			gridModel.currentRow = rowIndex;
+			gridModel.currentCol = colIndex;
 
 			changeCurrentCell();
+		}
+
+		function blurCell() {
+			gridModel.focusedCell.$elm.removeClass('focused');
+			gridModel.focusedCell = null;
 		}
 
 		// Edit Mode =============================================================================
@@ -509,6 +528,18 @@
 
 		}
 
+		// Remove Row ===========================================================================
+
+		function removeRow() {
+			var $row = $(this).closest(elems.row);
+
+			setTimeout(function() {
+				gridModel.data.splice(gridModel.currentRow, 1);
+				blurCell();
+				$row.remove();
+			}, 10);
+		}
+
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////
@@ -522,8 +553,9 @@
 			elems.$grid.on('click', function() {
 				gridModel.isGridFocused = true;
 			});
-			elems.$grid.on('click', '.js-ngrid__cell', focusCell);
-			elems.$grid.on('dblclick', '.js-ngrid__cell', enterEditCellMode);
+			elems.$grid.on('click', elems.cell, focusCell);
+			elems.$grid.on('dblclick', elems.cell, enterEditCellMode);
+			elems.$grid.on('click', elems.removeRowBtn, removeRow);
 
 			$(document).on('keydown.nGrid.navigation', function(e) {
 				if (!gridModel.isGridFocused) return;

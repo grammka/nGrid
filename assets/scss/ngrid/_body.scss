@@ -36,34 +36,46 @@
 	@include box-sizing(border-box);
 	@include display-inline-block;
 
-	.ngrid_disabled & {
+	&.disabled {
 		background-color: #F0F0F0;
 
-		color: #808080;
-	}
-
-	&.disabled {
-
-		.ngrid__cell__container {
-			background-color: #F0F0F0;
-		}
-
-		.ngrid__cell__textvalue {
-			color: #808080 !important;
-		}
+		color: #808080 !important;
 	}
 
 	&.focused {
+		background-color: nth($teal, 3);
 
-		.ngrid__cell__container {
-			background-color: nth($teal, 3);
-		}
-
-		.ngrid__cell__textvalue {
-			color: #fff !important;
-		}
+		color: #fff !important;
 	}
 }
+
+.ngrid__remove-row-btn {
+	width: 20px;
+	height: 20px;
+	line-height: 20px;
+	background-color: #FF4646;
+	margin-top: 5px;
+	cursor: pointer;
+
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	color: #fff;
+
+	@include border-radius(2px);
+
+	&:hover {
+		background: darken(#FF4646, 20%);
+	}
+
+	&:active {
+		background: darken(#FF4646, 30%);
+	}
+}
+
+
+
+
 
 .ngrid__cell__allocated-status {
 	width: 10px;
