@@ -72,26 +72,26 @@
 
 		function generateStylesheets() {
 			var css = '',
-				head = document.head || document.getElementsByTagName('head')[0],
-				style = gridOptions.$styleSheet || document.createElement('style');
+				$head = $('head'),
+				$style = gridOptions.$styleSheet || $("<style type='text/css' rel='stylesheet' />");
 
-			angular.forEach(gridOptions.columnDefs, function(col, i) {
+			for (var i = 0; i < gridOptions.columnDefs.length; i++) {
+				var col = gridOptions.columnDefs[i];
+
 				css += col.width ? ('#ngrid-' + gridOptions.id + ' .ngrid__col_' + i + ' { width: ' + col.width + 'px; } ') : '';
-			});
+			}
 
-			style.type = 'text/css';
+			$style.empty();
 
-			$(style).empty();
-
-			if (style.styleSheet) {
-				style.styleSheet.cssText = css;
+			if ($style[0].styleSheet) {
+				$style[0].styleSheet.cssText = css;
 			} else {
-				style.appendChild(document.createTextNode(css));
+				$style[0].appendChild(document.createTextNode(css));
 			}
 
 			if (!gridOptions.$styleSheet) {
-				gridOptions.$styleSheet = style;
-				head.appendChild(style);
+				gridOptions.$styleSheet = $style;
+				$head.append($style);
 			}
 		}
 
@@ -197,9 +197,9 @@
 		function generateGridData(data) {
 			generateDefaultEntity(data[0]);
 
-			angular.forEach(data, function(row, index) {
-				data[index] = generateGridRowData(row);
-			});
+			for (var i = 0; i < data.length; i++) {
+				data[i] = generateGridRowData(data[i]);
+			}
 
 			return data;
 		}
@@ -235,14 +235,16 @@
 			var headerHtml = '';
 
 			for (var i = 0; i < gridOptions.columnDefs.length; i++) {
-				var column = gridOptions.columnDefs[i];
+				var columnDefs = gridOptions.columnDefs[i];
 
-				headerHtml += '\
-					<div class="ngrid__header__cell ngrid__col_' + i + '">\
-						<div class="ngrid__header__cell__text">' + column.displayName + '</div>\
-						<div class="ngrid__header__cell__grip js-ngrid__header__cell__grip"></div>\
-					</div>\
-				';
+				if (!columnDefs.hidden) {
+					headerHtml += '\
+						<div class="ngrid__header__cell ngrid__col_' + i + '">\
+							<div class="ngrid__header__cell__text">' + columnDefs.displayName + '</div>\
+							<div class="ngrid__header__cell__grip js-ngrid__header__cell__grip"></div>\
+						</div>\
+					';
+				}
 			}
 
 			elems.$header.html(headerHtml);
@@ -254,7 +256,7 @@
 			for (var i = 0; i < data.length; i++) {
 				var cellsData = data[i].cells;
 
-				rowHtml += '<tr class="ngrid__row">' + generateCellHtml(cellsData) + '</tr>';
+				rowHtml += '<div class="ngrid__row">' + generateCellHtml(cellsData) + '</div>';
 			}
 
 			elems.$body.append(rowHtml);
@@ -266,52 +268,23 @@
 
 			for (var i = 0; i < data.length; i++) {
 				var columnDefs = gridOptions.columnDefs[i],
-					cellValue = data[i].value,
-					cellValueTemplate,
-					editCellTemplate = '';
+					cellValueTemplate;
 
-				/*
-				 If field is hidden then no need templates to generate
-				 */
 				if (columnDefs && !columnDefs.hidden) {
-					var cellDisabledClass = !columnDefs.editModel ? 'ngrid__cell_disabled' : '';
-
-					cellHtml += '<td class="ngrid__cell js-ngrid__cell ' + cellDisabledClass + '">';
-
-					if (columnDefs.editModel) {
-						var tpl = columnDefs.editModel.template,
-							options = columnDefs.editModel.options;
-
-						options = options ? 'options="' + JSON.stringify(options) + '"' : '';
-
-						editCellTemplate = '\
-							<div ng-show="cell.editing" class="ngrid__cell__editor">\
-								<n-grid-edit-cell-' + tpl + ' value="cell.value" ' + options + '>\
-							</div>\
-						';
-					}
-
 					/*
 					 If cellTemplate exist in ColumnDefs then replace simple TextBlock with this template
 					 */
 					if (columnDefs.cellTemplate) {
 						cellValueTemplate = '<ng-include src="\'' + columnDefs.cellTemplate + '\'"></ng-include>';
 					} else {
-						cellValueTemplate = '<div ng-hide="cell.editing" class="ngrid__cell__textvalue">' + cellValue + '</div>';
-					}
-
-					if (columnDefs.calculate) {
-						cellHtml += '<span n-grid-calculate-cell></span>';
+						cellValueTemplate = data[i].value || '';
 					}
 
 					cellHtml += '\
-						<div class="ngrid__cell__container ngrid__col_' + cellIndex + '">\
+						<div class="ngrid__cell js-ngrid__cell' + (' ngrid__col_' + cellIndex) + (!columnDefs.editModel ? ' ngrid__cell_disabled' : '') + '">\
 							' + cellValueTemplate + '\
-							' + editCellTemplate + '\
 						</div>\
 					';
-
-					cellHtml += '</td>';
 				}
 
 				cellIndex++;
@@ -361,6 +334,8 @@
 
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// Methods
+
+		// Navigation ===============================================================================
 
 		function scrollGrid(scrollOptions) {
 			var newPosition;
@@ -460,7 +435,77 @@
 			changeCurrentCell();
 		}
 
+		// Edit Mode =============================================================================
+
 		function enterEditCellMode() {
+			//gridModel.focusedCell.editing = true;
+			//gridModel.editingCell.cellElement = gridModel.focusedCell.$elm;
+		}
+
+		function leaveEditCellMode() {
+
+			calculateCell();
+		}
+
+		// Calculate Cell =======================================================================
+
+		function calculateCell() {
+			var calculate = gridOptions.columnDefs[$scope.$index].calculate;
+
+			if (calculate.formula) {
+				var formula = angular.copy(calculate.formula),
+					formulaFields = formula.match(/(#[^\s\+\-\*\/]+#)/g);
+
+				$scope.cell.__calculate = function (isInit) {
+					if (isInit && $scope.cell.value) return;
+
+					var _formula = angular.copy(formula);
+
+					for (var i = 0; i < formulaFields.length; i++) {
+						var field   = formulaFields[i],
+							cellId  = field.replace(/#/g, ''),
+							value   = $scope.row.entity[cellId].value;
+
+						_formula = _formula.replace(field, value || 0);
+					}
+
+					var value = eval(_formula);
+					value = isFinite(value) ? value : 0;
+
+					$scope.cell.value = value;
+				};
+
+				$scope.cell.__calculate(true); // init calculate
+			}
+
+			if (calculate.relations) {
+				$scope.$watch('cell.value', function (n, o) {
+					if (n && n != o) {
+						for (var i = 0; i < calculate.relations.length; i++) {
+							var cellId = calculate.relations[i],
+								cell = $scope.row.entity[cellId];
+
+							/*
+							 Exclusion comparing with current focused cell
+							 For example:
+							 - you have 3 fields: 'ItemsCount', 'PricePerItem', 'TotalPrice'
+							 - you focused 'PricePerItem' field (gridModel.focusedCell.field == 'PricePerItem')
+							 - you write value in focused cell
+							 - 'PricePerItem' will be changed
+							 - Above $scope.$watch('cell.value') will be called again coz 'PricePerItem' was changed
+							 - So we have LOOP
+							 - But we have 'exclusion' where exclusion field equal to our Focused cell!
+							 */
+							if (!calculate.exclusions || !~calculate.exclusions.indexOf(gridModel.focusedCell.field)) {
+								cell.__calculate();
+							}
+						}
+					}
+				});
+			}
+		}
+
+		function calculateCells() {
 
 		}
 
@@ -562,12 +607,16 @@
 			gridOptions = extendOptions(options);
 
 			gridModel = {
+				data: [],
 				isGridDisabled: true,
 				isGridFocused: false,   // grid focused status; needed for navigation and enter editing mode in cell
-				focusedCell: null,      // current focused cell
-				data: [],
 				currentRow: null,
-				currentCol: null
+				currentCol: null,
+				focusedCell: null,      // current focused cell
+				editingCell: {
+					cellElement: null,
+					editElement: null
+				}
 			};
 
 			elems.$container = $(container);
@@ -576,8 +625,7 @@
 			elems.$headerWrapper = $('<div class="ngrid__header__wrapper"></div>').appendTo(elems.$grid);
 			elems.$header = $('<div class="ngrid__header"></div>').appendTo(elems.$headerWrapper);
 			elems.$bodyWrapper = $('<div class="ngrid__body__wrapper"></div>').appendTo(elems.$grid);
-			elems.$bodyTable = $('<table class="ngrid__body"></table>').appendTo(elems.$bodyWrapper);
-			elems.$body = $('<tbody></tbody>').appendTo(elems.$bodyTable);
+			elems.$body = $('<div class="ngrid__body"></div>').appendTo(elems.$bodyWrapper);
 			elems.$footer = $('<div class="ngrid__footer" />').appendTo(elems.$grid);
 			elems.$footerMenu = $('<div class="ngrid__menu b-btns-list b-btns_s-list" />').appendTo(elems.$footer);
 			elems.$lockBtn = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s hint--top"><i class="icon icon-lock"></i></button>').appendTo(elems.$footerMenu);

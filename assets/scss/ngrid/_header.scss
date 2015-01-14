@@ -10,9 +10,6 @@
 
 .ngrid__header {
 	height: 34px;
-	position: absolute;
-	top: 0;
-	left: 0;
 
 	white-space: nowrap;
 	font-size: 0;
@@ -34,7 +31,7 @@
 .ngrid__header__cell__text {
 	overflow: hidden;
 	border-right: 1px solid $grid-head-border-color;
-	padding: 0 6px;
+	padding: 0 8px;
 
 	font-size: 14px;
 	color: #fff;

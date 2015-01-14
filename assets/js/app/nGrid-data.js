@@ -1,4 +1,15 @@
-var editCellTemplates = {
+var editCellTemplates;
+
+cellTemplates = {
+	currency: {
+
+	},
+	remove: {
+
+	}
+};
+
+editCellTemplates = {
 	input: {
 		default: {
 			template: 'input'
@@ -29,9 +40,6 @@ var editCellTemplates = {
 
 			}
 		}
-	},
-	remove: {
-
 	}
 };
 
@@ -181,7 +189,7 @@ var tableColumnDefs = [{
 	width: 140
 }, {
 	displayName: 'Валюта',
-	//cellTemplate: editCellTemplates.currency,
+	cellTemplate: cellTemplates.currency,
 	width: 140
 }, {
 	field: 'produced',
@@ -192,7 +200,7 @@ var tableColumnDefs = [{
 }, {
 	field: 'remove',
 	displayName: '',
-	cellTemplate: null, //cellTemplates.remove,
+	cellTemplate: cellTemplates.remove,
 	width: 20
 }, {
 	field: 'unitId',
