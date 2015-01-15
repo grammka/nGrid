@@ -104,106 +104,31 @@
 		 'defaultEntity' used when new Rows creating
 		 */
 		function generateDefaultEntity(data) {
-			angular.forEach(data, function(value, key) {
-				gridOptions.defaultEntity[key] = null;
-			});
+			for (var i in data) {
+				gridOptions.defaultEntity[i] = null;
+			}
 		}
 
 		function generateRowData(data) {
-			var row,
+			var row = [],
 				entity = angular.copy(data || gridOptions.defaultEntity);
 
-			row = {
-				entity: entity,
-				cells: []
-			};
-
-			angular.forEach(gridOptions.columnDefs, function(options, index) {
-				row.cells.push({
-					field: options.field,
-					value: entity[options.field],
-					index: index
+			gridOptions.columnDefs.forEach(function(columnDefs) {
+				row.push({
+					field: columnDefs.field,
+					value: entity[columnDefs.field]
 				});
-				row.entity[options.field] = row.cells[index];
-			});
-
-			angular.forEach(entity, function(value, key) {
-				if (!row.entity[key] || typeof row.entity[key] != 'object') {
-					row.entity[key] = {
-						field: key,
-						value: value
-					};
-				}
 			});
 
 			return row;
 		}
 
-		/*
-		 Generate MAGIC data to work with Grid Module
-		 Example:
-
-		 Data from server:
-
-		 [
-			 {id: 1, name: 'Axe', price: 1000},
-			 {id: 2, name: 'Bow', price: 2000},
-			 ...
-		 ]
-
-		 MAGIC data compiled: (+ after this in directives nGridRow and nGridCell $elm will be added to each row / cell
-
-		 [
-			 {
-				 entity: {
-					 id: {
-						 field: 'id',
-						 value: 1,
-						 index: 0,
-						 $elm: [Object object]
-					 },
-					 name: {
-						 field: 'name',
-						 value: 'Axe',
-						 index: 1,
-						 $elm: [Object object]
-					 },
-					 price: {
-						 field: 'price',
-						 value: 1000,
-						 index: 2,
-						 $elm: [Object object]
-					 }
-				 },
-				 cells: [
-					 {
-						 field: 'id',
-						 value: 1,
-						 index: 0,
-						 $elm: [Object object]
-					 },
-					 {
-						 field: 'name',
-						 value: 'Axe',
-						 index: 1,
-						 $elm: [Object object]
-					 },
-					 {
-						 field: 'price',
-						 value: 1000,
-						 index: 2,
-						 $elm: [Object object]
-					 }
-				 ]
-			 }
-		 ]
-		 */
 		function generateRowsData(data) {
 			generateDefaultEntity(data[0]);
 
-			for (var i = 0; i < data.length; i++) {
-				data[i] = generateRowData(data[i]);
-			}
+			data.forEach(function(value, i) {
+				data[i] = generateRowData(value);
+			});
 
 			return data;
 		}
@@ -211,16 +136,14 @@
 		function getVisibleColumnDefs() {
 			gridOptions.visibleColumnDefs = [];
 
-			for (var i = 0; i < gridOptions.columnDefs.length; i++) {
-				var col = gridOptions.columnDefs[i];
+			gridOptions.columnDefs.forEach(function(columnDefs, i) {
+				if (!columnDefs.hidden) {
+					var columnDefs = $.extend({}, columnDefs);
 
-				if (!col.hidden) {
-					var col = $.extend({}, col);
-
-					col.realColumnDefsIndex = i;
-					gridOptions.visibleColumnDefs.push(col);
+					columnDefs.realColumnDefsIndex = i;
+					gridOptions.visibleColumnDefs.push(columnDefs);
 				}
-			}
+			});
 		}
 
 		function getGridBodySizes() {
@@ -258,7 +181,7 @@
 			var rowHtml = '';
 
 			for (var i = 0; i < data.length; i++) {
-				var cellsData = data[i].cells;
+				var cellsData = data[i];
 
 				rowHtml += '<div class="ngrid__row">' + generateCellHtml(cellsData) + '</div>';
 			}
@@ -472,7 +395,7 @@
 				$('.ngrid__cell.focused').removeClass('focused');
 			}
 
-			gridModel.focusedCell = gridModel.rows[gridModel.currentRow].cells[gridModel.currentCol];
+			gridModel.focusedCell = gridModel.rows[gridModel.currentRow][gridModel.currentCol];
 			gridModel.focusedCell.focused = true;
 
 			if (!gridModel.focusedCell.$elm) {
@@ -661,17 +584,22 @@
 		function leaveEditMode() {
 			gridModel.isGridDisabled = true;
 
+			redrawRows();
+
 			elems.$grid.addClass('ngrid_disabled');
+		}
+
+		function redrawRows() {
+			gridModel.rows = gridModel.defaultRows.slice(0);
+
+			elems.$body.empty();
+			appendRowHtml(gridModel.rows);
 		}
 
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////
 		// Init
-
-		function updateHtmlAndCssViaConfigs() {
-
-		}
 
 		function setEvents() {
 			elems.$grid.on('click', focusGrid);
@@ -689,9 +617,10 @@
 		}
 
 		function loadData() {
-			console.log(gridData);
+			var rows = generateRowsData(gridData);
 
-			gridModel.rows = generateRowsData(gridData);
+			gridModel.defaultRows = rows.slice(0);
+			gridModel.rows = rows.slice(0);
 
 			getGridBodySizes();
 			appendRowHtml(gridModel.rows);
@@ -723,6 +652,7 @@
 			gridOptions = extendOptions(options);
 
 			gridModel = {
+				defaultRows: [],
 				rows: [],
 				dirtyRows: [],
 				isGridDisabled: true,
@@ -736,8 +666,7 @@
 				}
 			};
 
-			elems.$container            = $(container);
-			elems.$grid                 = $('<div class="ngrid' + (gridModel.isGridDisabled ? ' ngrid_disabled' : '') + '" id="ngrid-' + gridOptions.id + '" />').appendTo(elems.$container);
+			elems.$grid                 = $('<div class="ngrid' + (gridModel.isGridDisabled ? ' ngrid_disabled' : '') + '" id="ngrid-' + gridOptions.id + '" />');
 			elems.$confirmOverlay       = $('<div class="ngrid__confirm__overlay"></div>').appendTo(elems.$grid);
             elems.$confirm              = $('<div class="ngrid__confirm"></div>').appendTo(elems.$confirmOverlay);
 			elems.$headerWrapper        = $('<div class="ngrid__header__wrapper"></div>').appendTo(elems.$grid);
@@ -752,7 +681,8 @@
 			elems.$cancelBtn            = $('<button class="ngrid__menu__item ngrid__menu__item_cancel b-btn b-btn_full b-btn_s b-btn_red">отмена</button>').appendTo(elems.$footerMenu);
 			elems.$footerRPart          = $('<div class="grid__footer__r-part" />').appendTo(elems.$footer);
 
-			updateHtmlAndCssViaConfigs();
+			$(container).replaceWith(elems.$grid);
+
 			getVisibleColumnDefs();
 			setEvents();
 			appendHeaderHtml();
@@ -779,22 +709,3 @@
 	window.NGrid = NGrid;
 
 })(jQuery, window);
-
-
-
-$(function() {
-
-	var gridOptions = {
-		urls: {
-			loadData:        'catalog/cmrqty/getlist',
-			search:          'catalog/cmrqty/getlist',
-			searchExample:   'catalog/cmrqty/searchexample',
-			save:            'catalog/cmrqty/savelist',
-			remove:          'catalog/cmrqty/delete'
-		},
-		columnDefs: tableColumnDefs
-	};
-
-	new NGrid('#grid', gridOptions);
-
-});

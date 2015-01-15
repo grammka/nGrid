@@ -1,6 +1,6 @@
 var gridData = [];
 
-for (var i = 0; i < 10; i++) {
+for (var i = 0; i < 1; i++) {
 
 	gridData.push({
 		"id": 1,

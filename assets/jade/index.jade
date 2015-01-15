@@ -24,7 +24,7 @@ html(ng-app="nGridTWMSApp", id="nGridTWMSApp")
 		script(src='data/js/app.js')
 		// endbuild
 
-	body
+	body(ng-controller="DefaultCtrl")
 
 		div(style="width: 1000px;")
-			div#grid
+			n-grid(options="gridOptions")
