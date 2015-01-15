@@ -576,15 +576,57 @@
 
 		}
 
+		// Confirm ==============================================================================
+
+		/**
+		 *
+		 * @param options {accept: 'OK', decline: 'CANCEL', message: 'ARE U SURE?'}
+		 * @param acceptHandler
+		 * @param declineHandler
+		 */
+		function openConfirm(options, acceptHandler, declineHandler) {
+			elems.$confirm.append('<div class="ngrid__confirm__header">' + (options.message || 'Вы уверены?') + '</div>');
+
+			var $acceptBtn     = $('<div class="b-btn b-btn_full b-btn_m b-btn_green">' + (options.message || 'Удалить') + '</div>').appendTo(elems.$confirm),
+				$declineBtn    = $('<div class="b-btn b-btn_full b-btn_m b-btn_red">' + (options.message || 'Отмена') + '</div>').appendTo(elems.$confirm);
+
+			$acceptBtn.on('click', function() {
+				if (acceptHandler) acceptHandler();
+				closeConfirm();
+			});
+
+			$declineBtn.on('click', function() {
+				if (declineHandler) declineHandler();
+				closeConfirm();
+			});
+
+			elems.$confirmOverlay.show();
+		}
+
+		function closeConfirm() {
+			elems.$confirm.empty();
+			elems.$confirmOverlay.hide();
+		}
+
+		function acceptConfirm() {
+
+		}
+
+		function declineConfirm() {
+
+		}
+
 		// Remove Row ===========================================================================
 
 		function removeRow() {
 			var $row = $(this).closest(elems.row);
 
 			setTimeout(function() {
-				gridModel.rows.splice(gridModel.currentRow, 1);
-				blurCell();
-				$row.remove();
+				openConfirm({}, function() {
+					gridModel.rows.splice(gridModel.currentRow, 1);
+					blurCell();
+					$row.remove();
+				});
 			}, 10);
 		}
 
@@ -592,7 +634,7 @@
 
 		function addRow() {
 			if (gridModel.isGridDisabled) {
-				return
+				return;
 			}
 
 			var data = generateRowData();
@@ -603,32 +645,23 @@
 			appendRowHtml([data]);
 
 			setTimeout(function() {
-				elems.$bodyWrapper[0].scrollTop = 10000;
+				// scroll bottom
+				elems.$bodyWrapper[0].scrollTop = 1000000;
 			}, 10);
 		}
 
-		// Toggle Lock ==========================================================================
+		// Edit Mode ====================================================================
 
-		function toggleLockBtn() {
-			if (gridModel.isGridDisabled) {             // unlock grid
-				gridModel.isGridDisabled = false;
+		function enterEditMode() {
+			gridModel.isGridDisabled = false;
 
-				elems.$lockBtn
-					.removeClass('b-btn_red')
-					.addClass('b-btn_green')
-					.attr('data-hint', 'закрыть');
-			} else {                                    // lock grid
-				gridModel.isGridDisabled = true;
+			elems.$grid.removeClass('ngrid_disabled');
+		}
 
-				elems.$lockBtn
-                    .removeClass('b-btn_green')
-                    .addClass('b-btn_red')
-                    .attr('data-hint', 'открыть');
-			}
+		function leaveEditMode() {
+			gridModel.isGridDisabled = true;
 
-			elems.$addRowBtn.toggleClass('disabled');
-			elems.$saveBtn.toggleClass('disabled');
-			elems.$grid.toggleClass('ngrid_disabled');
+			elems.$grid.addClass('ngrid_disabled');
 		}
 
 
@@ -648,19 +681,20 @@
 
 			elems.$bodyWrapper.on('scroll', onBodyScroll);
 
-			elems.$lockBtn.on('click', toggleLockBtn);
+			elems.$editBtn.on('click', enterEditMode);
+			elems.$cancelBtn.on('click', leaveEditMode);
 			elems.$addRowBtn.on('click', addRow);
 
 			$(document).on('keydown.nGrid.navigation', navigate);
 		}
 
 		function loadData() {
-			$.getJSON('/data/js/data.json', function(response) {
-				gridModel.rows = generateRowsData(response.items);
+			console.log(gridData);
 
-				getGridBodySizes();
-				appendRowHtml(gridModel.rows);
-			});
+			gridModel.rows = generateRowsData(gridData);
+
+			getGridBodySizes();
+			appendRowHtml(gridModel.rows);
 
 			return;
 
@@ -705,25 +739,17 @@
 			elems.$container            = $(container);
 			elems.$grid                 = $('<div class="ngrid' + (gridModel.isGridDisabled ? ' ngrid_disabled' : '') + '" id="ngrid-' + gridOptions.id + '" />').appendTo(elems.$container);
 			elems.$confirmOverlay       = $('<div class="ngrid__confirm__overlay"></div>').appendTo(elems.$grid);
-            elems.$confirm              = $('<div class="ngrid__confirm"><div class="ngrid__confirm__header">Вы уверены?</div></div>').appendTo(elems.$confirmOverlay);
-            elems.$confirmConfirmBtn    = $('<div class="ngrid__confirm__confirm-btn b-btn b-btn_full b-btn_m b-btn_green">Удалить</div>').appendTo(elems.$confirm);
-            elems.$confirmCancelBtn     = $('<div class="ngrid__confirm__cancel-btn b-btn b-btn_full b-btn_m b-btn_red">Отмена</div>').appendTo(elems.$confirm);
+            elems.$confirm              = $('<div class="ngrid__confirm"></div>').appendTo(elems.$confirmOverlay);
 			elems.$headerWrapper        = $('<div class="ngrid__header__wrapper"></div>').appendTo(elems.$grid);
 			elems.$header               = $('<div class="ngrid__header"></div>').appendTo(elems.$headerWrapper);
 			elems.$bodyWrapper          = $('<div class="ngrid__body__wrapper"></div>').appendTo(elems.$grid);
 			elems.$body                 = $('<div class="ngrid__body"></div>').appendTo(elems.$bodyWrapper);
 			elems.$footer               = $('<div class="ngrid__footer" />').appendTo(elems.$grid);
 			elems.$footerMenu           = $('<div class="ngrid__menu b-btns-list b-btns_s-list" />').appendTo(elems.$footer);
-			elems.$lockBtn              = $('\
-											<button \
-												class="ngrid__menu__item b-btn b-btn_' + (gridModel.isGridDisabled ? 'red' : 'green') + ' b-btn_full b-btn_s hint--top"\
-												data-hint="' + (gridModel.isGridDisabled ? 'открыть' : 'закрыть') + '"\
-											>\
-												<i class="icon icon-lock"></i>\
-											</button>\
-										').appendTo(elems.$footerMenu);
-			elems.$addRowBtn            = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s b-btn_blue' + (gridModel.isGridDisabled ? ' disabled' : '') + '">добавить строку</button>').appendTo(elems.$footerMenu);
-			elems.$saveBtn              = $('<button class="ngrid__menu__item b-btn b-btn_full b-btn_s b-btn_green' + (gridModel.isGridDisabled ? ' disabled' : '') + '">сохранить</button>').appendTo(elems.$footerMenu);
+			elems.$addRowBtn            = $('<button class="ngrid__menu__item ngrid__menu__item_add-row b-btn b-btn_full b-btn_s b-btn_blue">добавить строку</button>').appendTo(elems.$footerMenu);
+			elems.$saveBtn              = $('<button class="ngrid__menu__item ngrid__menu__item_save b-btn b-btn_full b-btn_s b-btn_green">сохранить</button>').appendTo(elems.$footerMenu);
+			elems.$editBtn              = $('<button class="ngrid__menu__item ngrid__menu__item_edit b-btn b-btn_full b-btn_s b-btn_blue">редактировать</button>').appendTo(elems.$footerMenu);
+			elems.$cancelBtn            = $('<button class="ngrid__menu__item ngrid__menu__item_cancel b-btn b-btn_full b-btn_s b-btn_red">отмена</button>').appendTo(elems.$footerMenu);
 			elems.$footerRPart          = $('<div class="grid__footer__r-part" />').appendTo(elems.$footer);
 
 			updateHtmlAndCssViaConfigs();

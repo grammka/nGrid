@@ -1,0 +1,47 @@
+.ngrid__confirm__overlay {
+	display: none;
+
+	width: 100%;
+	height: 100%;
+	background-color: rgba(49, 70, 79, 0.82);
+
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 2000;
+}
+
+.ngrid__confirm {
+	width: 200px;
+	height: 100px;
+	background-color: #fff;
+
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+
+	text-align: center;
+
+	@include border-radius(2px);
+
+	.b-btn {
+		margin: 15px 5px 0;
+
+		font-size: 14px;
+
+		@include display-inline-block;
+	}
+}
+
+.ngrid__confirm__header {
+	height: 40px;
+	line-height: 40px;
+	background-color: #eee;
+	border-bottom: 1px solid #ddd;
+	padding: 0 8px;
+
+	@include border-top-radius(2px);
+}
