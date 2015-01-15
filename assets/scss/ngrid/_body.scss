@@ -1,3 +1,7 @@
+$grid-row-odd-bg-color: #f9f9f9;
+$grid-row-even-bg-color: #fafafa;
+
+
 .ngrid__body__wrapper {
 	width: 100%;
 	margin-top: 1px;
@@ -16,6 +20,7 @@
 }
 
 .ngrid__row {
+	background: $grid-row-odd-bg-color;
 
 	&:nth-child(even) {
 		background: $grid-row-even-bg-color;
@@ -40,6 +45,14 @@
 
 	@include box-sizing(border-box);
 	@include display-inline-block;
+
+	input {
+		width: 100%;
+		height: 27px;
+		border: 1px solid #1E9EE6;
+		margin-left: -8px;
+		padding: 0 7px;
+	}
 
 	.ngrid_disabled &,
 	&.disabled {

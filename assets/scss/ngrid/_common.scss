@@ -1,11 +1,12 @@
 $grid-head-bg-color: #495566;
 $grid-head-border-color: #2E2E2E;
 $grid-body-border-color: #dbdbde;
-$grid-row-even-bg-color: #fafafa;
+
 
 .ngrid {
 	overflow: visible;
 	position: relative;
+	background-color: #fff;
 
 	@include box-shadow($default-border-color 0 0 0 1px);
 	@include border-radius(3px);

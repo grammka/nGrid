@@ -1,6 +1,6 @@
 (function($, window) {
 
-	function NGrid(container, options) {
+	function NGrid(container, options, ngMethods) {
 		var HOTKEYS, UTILS, TEMPLATES, DEFAULT_OPTIONS;
 		var elems, gridOptions, gridModel;
 
@@ -113,10 +113,11 @@
 			var row = [],
 				entity = angular.copy(data || gridOptions.defaultEntity);
 
-			gridOptions.columnDefs.forEach(function(columnDefs) {
+			gridOptions.columnDefs.forEach(function(columnDefs, i) {
 				row.push({
 					field: columnDefs.field,
-					value: entity[columnDefs.field]
+					value: entity[columnDefs.field],
+					index: i
 				});
 			});
 
@@ -270,331 +271,353 @@
 
 
 
-		//////////////////////////////////////////////////////////////////////////////////////////////
-		// Methods
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// Grid
 
-		function focusGrid() {
-			gridModel.isGridFocused = true;
-		}
+		var Grid = {
+			getColumnsCount: function() {
+				var length = gridOptions.visibleColumnDefs.length;
 
-		function onBodyScroll() {
-			elems.$header.css('margin-left', -this.scrollLeft);
-		}
-
-		function getColumnsCount() {
-			var length = gridOptions.visibleColumnDefs.length;
-
-			if (gridOptions.urls.remove) {
-				length++;
-			}
-
-			return length;
-		}
-
-		// Navigation ===============================================================================
-
-		function navigate(e) {
-			if (!gridModel.isGridFocused) return;
-			if (!~[HOTKEYS.left, HOTKEYS.up, HOTKEYS.right, HOTKEYS.down].indexOf(e.keyCode)) return;
-
-			e.preventDefault();
-
-			var scrollOptions = {};
-
-			if (e.keyCode == HOTKEYS.left) {
-				gridModel.currentCol--;
-				scrollOptions.horizontal = true;
-			}
-			if (e.keyCode == HOTKEYS.up) {
-				gridModel.currentRow--;
-				scrollOptions.vertical = true;
-			}
-			if (e.keyCode == HOTKEYS.right) {
-				gridModel.currentCol++;
-				scrollOptions.horizontal = true;
-			}
-			if (e.keyCode == HOTKEYS.down) {
-				gridModel.currentRow++;
-				scrollOptions.vertical = true;
-			}
-
-			if (gridModel.currentRow < 0) {
-				gridModel.currentRow = gridModel.rows.length - 1;
-				scrollOptions.last = true;
-			}
-			if (gridModel.currentRow == gridModel.rows.length) {
-				gridModel.currentRow = 0;
-				scrollOptions.first = true;
-			}
-			if (gridModel.currentCol < 0) {
-				gridModel.currentCol = getColumnsCount() - 1;
-				scrollOptions.last = true;
-			}
-			if (gridModel.currentCol == getColumnsCount()) {
-				gridModel.currentCol = 0;
-				scrollOptions.first = true;
-			}
-
-			changeCurrentCell();
-			scrollGrid(scrollOptions);
-		}
-
-		function scrollGrid(scrollOptions) {
-			var newPosition;
-
-			/*
-			 Horizontal and Vertical calculates are same
-			 If new element is Last or First new position will be 10000 or 0 (magic)
-			 */
-			if (scrollOptions.horizontal) {
-				var gridScrollLeft = elems.$bodyWrapper[0].scrollLeft,
-					cellInsideOffsetLeft = gridModel.focusedCell.$elm[0].offsetLeft,
-					cellWidth = gridModel.focusedCell.$elm.width();
-
-				if (scrollOptions.first) {
-					newPosition = 0;
-				} else if (scrollOptions.last) {
-					newPosition = 10000;
-				} else {
-					if (cellInsideOffsetLeft + cellWidth > gridScrollLeft + gridOptions.gridWrapperWidth) {
-						newPosition = cellInsideOffsetLeft;
-					} else if (cellInsideOffsetLeft < gridScrollLeft) {
-						newPosition = cellInsideOffsetLeft - gridOptions.gridWrapperWidth + cellWidth;
-					}
+				if (gridOptions.urls.remove) {
+					length++;
 				}
 
-				if (typeof newPosition != 'undefined') elems.$bodyWrapper[0].scrollLeft = newPosition;
+				return length;
+			},
 
-			} else if (scrollOptions.vertical) {
-				var gridScrollTop = elems.$bodyWrapper[0].scrollTop,
-					cellInsideOffsetTop = gridModel.focusedCell.$elm[0].offsetTop,
-					cellHeight = gridOptions.rowHeight;
+			onBodyScroll: function() {
+				elems.$header.css('margin-left', -this.scrollLeft);
+			},
 
-				if (scrollOptions.first) {
-					newPosition = 0;
-				} else if (scrollOptions.last) {
-					newPosition = 10000;
-				} else {
-					if (cellInsideOffsetTop + cellHeight > gridScrollTop + gridOptions.gridWrapperHeight) {
-						newPosition = cellInsideOffsetTop;
-					} else if (cellInsideOffsetTop < gridScrollTop) {
-						newPosition = cellInsideOffsetTop - gridOptions.gridWrapperHeight + cellHeight;
-					}
+			focus: function() {
+				gridModel.isGridFocused = true;
+			},
+
+			navigate: function(e) {
+				if (!gridModel.isGridFocused || gridModel.focusedCell.editing) return;
+				if (!~[HOTKEYS.left, HOTKEYS.up, HOTKEYS.right, HOTKEYS.down].indexOf(e.keyCode)) return;
+
+				e.preventDefault();
+
+				var scrollOptions = {};
+
+				if (e.keyCode == HOTKEYS.left) {
+					gridModel.currentCol--;
+					scrollOptions.horizontal = true;
+				}
+				if (e.keyCode == HOTKEYS.up) {
+					gridModel.currentRow--;
+					scrollOptions.vertical = true;
+				}
+				if (e.keyCode == HOTKEYS.right) {
+					gridModel.currentCol++;
+					scrollOptions.horizontal = true;
+				}
+				if (e.keyCode == HOTKEYS.down) {
+					gridModel.currentRow++;
+					scrollOptions.vertical = true;
 				}
 
-				if (typeof newPosition != 'undefined') elems.$bodyWrapper[0].scrollTop = newPosition;
-			}
-		}
+				if (gridModel.currentRow < 0) {
+					gridModel.currentRow = gridModel.rows.length - 1;
+					scrollOptions.last = true;
+				}
+				if (gridModel.currentRow == gridModel.rows.length) {
+					gridModel.currentRow = 0;
+					scrollOptions.first = true;
+				}
+				if (gridModel.currentCol < 0) {
+					gridModel.currentCol = Grid.getColumnsCount() - 1;
+					scrollOptions.last = true;
+				}
+				if (gridModel.currentCol == Grid.getColumnsCount()) {
+					gridModel.currentCol = 0;
+					scrollOptions.first = true;
+				}
 
-		function changeCurrentCell() {
-			// Clean previous focused Cell
-			if (gridModel.focusedCell) {
-				//gridModel.focusedCell.editing = false;
-				gridModel.focusedCell.focused = false;
+				Cell.changeFocused();
+				Grid.scroll(scrollOptions);
+			},
 
-				$('.ngrid__cell.focused').removeClass('focused');
-			}
+			scroll: function(scrollOptions) {
+				var newPosition;
 
-			gridModel.focusedCell = gridModel.rows[gridModel.currentRow][gridModel.currentCol];
-			gridModel.focusedCell.focused = true;
+				/*
+				 Horizontal and Vertical calculates are same
+				 If new element is Last or First new position will be 10000 or 0 (magic)
+				 */
+				if (scrollOptions.horizontal) {
+					var gridScrollLeft = elems.$bodyWrapper[0].scrollLeft,
+						cellInsideOffsetLeft = gridModel.focusedCell.$elm[0].offsetLeft,
+						cellWidth = gridModel.focusedCell.$elm.width();
 
-			if (!gridModel.focusedCell.$elm) {
-				gridModel.focusedCell.$elm =
-					elems.$grid
-						.find(elems.row).eq(gridModel.currentRow)
-						.find(elems.cell).eq(gridModel.currentCol);
-			}
-
-			gridModel.focusedCell.$elm.addClass('focused');
-		}
-
-		function focusCell() {
-			var rowIndex, colIndex;
-
-			rowIndex = $(this).closest(elems.row).index();
-			colIndex = $(this).index();
-
-			gridModel.currentRow = rowIndex;
-			gridModel.currentCol = colIndex;
-
-			changeCurrentCell();
-		}
-
-		function blurCell() {
-			gridModel.focusedCell.$elm.removeClass('focused');
-			gridModel.focusedCell = null;
-		}
-
-		// Edit Mode =============================================================================
-
-		function enterEditCellMode() {
-			//gridModel.focusedCell.editing = true;
-			//gridModel.editingCell.cellElement = gridModel.focusedCell.$elm;
-		}
-
-		function leaveEditCellMode() {
-
-			calculateCell();
-		}
-
-		// Calculate Cell =======================================================================
-
-		function calculateCell() {
-			var calculate = gridOptions.columnDefs[$scope.$index].calculate;
-
-			if (calculate.formula) {
-				var formula = angular.copy(calculate.formula),
-					formulaFields = formula.match(/(#[^\s\+\-\*\/]+#)/g);
-
-				$scope.cell.__calculate = function (isInit) {
-					if (isInit && $scope.cell.value) return;
-
-					var _formula = angular.copy(formula);
-
-					for (var i = 0; i < formulaFields.length; i++) {
-						var field   = formulaFields[i],
-							cellId  = field.replace(/#/g, ''),
-							value   = $scope.row.entity[cellId].value;
-
-						_formula = _formula.replace(field, value || 0);
-					}
-
-					var value = eval(_formula);
-					value = isFinite(value) ? value : 0;
-
-					$scope.cell.value = value;
-				};
-
-				$scope.cell.__calculate(true); // init calculate
-			}
-
-			if (calculate.relations) {
-				$scope.$watch('cell.value', function (n, o) {
-					if (n && n != o) {
-						for (var i = 0; i < calculate.relations.length; i++) {
-							var cellId = calculate.relations[i],
-								cell = $scope.row.entity[cellId];
-
-							/*
-							 Exclusion comparing with current focused cell
-							 For example:
-							 - you have 3 fields: 'ItemsCount', 'PricePerItem', 'TotalPrice'
-							 - you focused 'PricePerItem' field (gridModel.focusedCell.field == 'PricePerItem')
-							 - you write value in focused cell
-							 - 'PricePerItem' will be changed
-							 - Above $scope.$watch('cell.value') will be called again coz 'PricePerItem' was changed
-							 - So we have LOOP
-							 - But we have 'exclusion' where exclusion field equal to our Focused cell!
-							 */
-							if (!calculate.exclusions || !~calculate.exclusions.indexOf(gridModel.focusedCell.field)) {
-								cell.__calculate();
-							}
+					if (scrollOptions.first) {
+						newPosition = 0;
+					} else if (scrollOptions.last) {
+						newPosition = 10000;
+					} else {
+						if (cellInsideOffsetLeft + cellWidth > gridScrollLeft + gridOptions.gridWrapperWidth) {
+							newPosition = cellInsideOffsetLeft;
+						} else if (cellInsideOffsetLeft < gridScrollLeft) {
+							newPosition = cellInsideOffsetLeft - gridOptions.gridWrapperWidth + cellWidth;
 						}
 					}
-				});
+
+					if (typeof newPosition != 'undefined') elems.$bodyWrapper[0].scrollLeft = newPosition;
+
+				} else if (scrollOptions.vertical) {
+					var gridScrollTop = elems.$bodyWrapper[0].scrollTop,
+						cellInsideOffsetTop = gridModel.focusedCell.$elm[0].offsetTop,
+						cellHeight = gridOptions.rowHeight;
+
+					if (scrollOptions.first) {
+						newPosition = 0;
+					} else if (scrollOptions.last) {
+						newPosition = 10000;
+					} else {
+						if (cellInsideOffsetTop + cellHeight > gridScrollTop + gridOptions.gridWrapperHeight) {
+							newPosition = cellInsideOffsetTop;
+						} else if (cellInsideOffsetTop < gridScrollTop) {
+							newPosition = cellInsideOffsetTop - gridOptions.gridWrapperHeight + cellHeight;
+						}
+					}
+
+					if (typeof newPosition != 'undefined') elems.$bodyWrapper[0].scrollTop = newPosition;
+				}
+			},
+
+			enterEditMode: function() {
+				gridModel.isGridDisabled = false;
+
+				elems.$grid.removeClass('ngrid_disabled');
+			},
+
+			leaveEditMode: function() {
+				gridModel.isGridDisabled = true;
+
+				Row.redrawAll();
+
+				elems.$grid.addClass('ngrid_disabled');
 			}
-		}
+		};
 
-		function calculateCells() {
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// Confirm
 
-		}
+		var Confirm = {
+			/**
+			 *
+			 * @param options - {accept: "OK", decline: "CANCEL", message: "ARE U SURE?"}
+			 * @param acceptHandler
+			 * @param declineHandler
+			 */
+			open: function (options, acceptHandler, declineHandler) {
+				elems.$confirm.append('<div class="ngrid__confirm__header">' + (options.message || 'Вы уверены?') + '</div>');
 
-		// Confirm ==============================================================================
+				var $acceptBtn     = $('<div class="b-btn b-btn_full b-btn_m b-btn_green">' + (options.message || 'Удалить') + '</div>').appendTo(elems.$confirm),
+					$declineBtn    = $('<div class="b-btn b-btn_full b-btn_m b-btn_red">' + (options.message || 'Отмена') + '</div>').appendTo(elems.$confirm);
 
-		/**
-		 *
-		 * @param options {accept: 'OK', decline: 'CANCEL', message: 'ARE U SURE?'}
-		 * @param acceptHandler
-		 * @param declineHandler
-		 */
-		function openConfirm(options, acceptHandler, declineHandler) {
-			elems.$confirm.append('<div class="ngrid__confirm__header">' + (options.message || 'Вы уверены?') + '</div>');
-
-			var $acceptBtn     = $('<div class="b-btn b-btn_full b-btn_m b-btn_green">' + (options.message || 'Удалить') + '</div>').appendTo(elems.$confirm),
-				$declineBtn    = $('<div class="b-btn b-btn_full b-btn_m b-btn_red">' + (options.message || 'Отмена') + '</div>').appendTo(elems.$confirm);
-
-			$acceptBtn.on('click', function() {
-				if (acceptHandler) acceptHandler();
-				closeConfirm();
-			});
-
-			$declineBtn.on('click', function() {
-				if (declineHandler) declineHandler();
-				closeConfirm();
-			});
-
-			elems.$confirmOverlay.show();
-		}
-
-		function closeConfirm() {
-			elems.$confirm.empty();
-			elems.$confirmOverlay.hide();
-		}
-
-		function acceptConfirm() {
-
-		}
-
-		function declineConfirm() {
-
-		}
-
-		// Remove Row ===========================================================================
-
-		function removeRow() {
-			var $row = $(this).closest(elems.row);
-
-			setTimeout(function() {
-				openConfirm({}, function() {
-					gridModel.rows.splice(gridModel.currentRow, 1);
-					blurCell();
-					$row.remove();
+				$acceptBtn.on('click', function() {
+					if (acceptHandler) acceptHandler();
+					Confirm.close();
 				});
-			}, 10);
-		}
 
-		// Add New Row ===========================================================================
+				$declineBtn.on('click', function() {
+					if (declineHandler) declineHandler();
+					Confirm.close();
+				});
 
-		function addRow() {
-			if (gridModel.isGridDisabled) {
-				return;
+				elems.$confirmOverlay.show();
+			},
+
+			close: function() {
+				elems.$confirm.empty();
+				elems.$confirmOverlay.hide();
 			}
+		};
 
-			var data = generateRowData();
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// Row
 
-			data.dirty = true;
+		var Row = {
+			create: function() {
+				if (gridModel.isGridDisabled) {
+					return;
+				}
 
-			gridModel.rows.push(data);
-			appendRowHtml([data]);
+				var data = generateRowData();
 
-			setTimeout(function() {
-				// scroll bottom
-				elems.$bodyWrapper[0].scrollTop = 1000000;
-			}, 10);
-		}
+				data.dirty = true;
 
-		// Edit Mode ====================================================================
+				gridModel.rows.push(data);
+				appendRowHtml([data]);
 
-		function enterEditMode() {
-			gridModel.isGridDisabled = false;
+				setTimeout(function() {
+					// scroll bottom
+					elems.$bodyWrapper[0].scrollTop = 1000000;
+				}, 10);
+			},
 
-			elems.$grid.removeClass('ngrid_disabled');
-		}
+			remove: function() {
+				var $row = $(this).closest(elems.row);
 
-		function leaveEditMode() {
-			gridModel.isGridDisabled = true;
+				setTimeout(function() {
+					Confirm.open({}, function() {
+						gridModel.rows.splice(gridModel.currentRow, 1);
+						Cell.blur();
+						$row.remove();
+					});
+				}, 10);
+			},
 
-			redrawRows();
+			redrawAll: function() {
+				gridModel.rows = gridModel.defaultRows.slice(0);
 
-			elems.$grid.addClass('ngrid_disabled');
-		}
+				elems.$body.empty();
+				appendRowHtml(gridModel.rows);
+			}
+		};
 
-		function redrawRows() {
-			gridModel.rows = gridModel.defaultRows.slice(0);
+		//////////////////////////////////////////////////////////////////////////////////////////
+		// Cell
 
-			elems.$body.empty();
-			appendRowHtml(gridModel.rows);
-		}
+		var Cell = {
+			changeFocused: function() {
+				// Clean previous focused Cell
+				if (gridModel.focusedCell) {
+					//gridModel.focusedCell.editing = false;
+					gridModel.focusedCell.focused = false;
+
+					$('.ngrid__cell.focused').removeClass('focused');
+				}
+
+				gridModel.focusedCell = gridModel.rows[gridModel.currentRow][gridModel.currentCol];
+				gridModel.focusedCell.focused = true;
+
+				if (!gridModel.focusedCell.$elm) {
+					gridModel.focusedCell.$elm =
+						elems.$grid
+							.find(elems.row).eq(gridModel.currentRow)
+							.find(elems.cell).eq(gridModel.currentCol);
+				}
+
+				gridModel.focusedCell.$elm.addClass('focused');
+			},
+
+			focus: function() {
+				var rowIndex, colIndex;
+
+				rowIndex = $(this).closest(elems.row).index();
+				colIndex = $(this).index();
+
+				gridModel.currentRow = rowIndex;
+				gridModel.currentCol = colIndex;
+
+				Cell.changeFocused();
+			},
+
+			blur: function() {
+				if (gridModel.focusedCell.editing) {
+					Cell.leaveEditMode();
+				}
+
+				gridModel.focusedCell.$elm.removeClass('focused');
+				gridModel.focusedCell = null;
+			},
+
+			calculate: function() {
+				var calculate = gridOptions.columnDefs[$scope.$index].calculate;
+
+				if (calculate.formula) {
+					var formula = angular.copy(calculate.formula),
+						formulaFields = formula.match(/(#[^\s\+\-\*\/]+#)/g);
+
+					$scope.cell.__calculate = function (isInit) {
+						if (isInit && $scope.cell.value) return;
+
+						var _formula = angular.copy(formula);
+
+						for (var i = 0; i < formulaFields.length; i++) {
+							var field   = formulaFields[i],
+								cellId  = field.replace(/#/g, ''),
+								value   = $scope.row.entity[cellId].value;
+
+							_formula = _formula.replace(field, value || 0);
+						}
+
+						var value = eval(_formula);
+						value = isFinite(value) ? value : 0;
+
+						$scope.cell.value = value;
+					};
+
+					$scope.cell.__calculate(true); // init calculate
+				}
+
+				if (calculate.relations) {
+					$scope.$watch('cell.value', function (n, o) {
+						if (n && n != o) {
+							for (var i = 0; i < calculate.relations.length; i++) {
+								var cellId = calculate.relations[i],
+									cell = $scope.row.entity[cellId];
+
+								/*
+								 Exclusion comparing with current focused cell
+								 For example:
+								 - you have 3 fields: 'ItemsCount', 'PricePerItem', 'TotalPrice'
+								 - you focused 'PricePerItem' field (gridModel.focusedCell.field == 'PricePerItem')
+								 - you write value in focused cell
+								 - 'PricePerItem' will be changed
+								 - Above $scope.$watch('cell.value') will be called again coz 'PricePerItem' was changed
+								 - So we have LOOP
+								 - But we have 'exclusion' where exclusion field equal to our Focused cell!
+								 */
+								if (!calculate.exclusions || !~calculate.exclusions.indexOf(gridModel.focusedCell.field)) {
+									cell.__calculate();
+								}
+							}
+						}
+					});
+				}
+			},
+
+			enterEditMode: function() {
+				if (gridModel.focusedCell.editing) {
+					return;
+				}
+
+				//if (gridModel.isGridDisabled) {
+				//	return;
+				//}
+
+				var cellValue   = gridModel.focusedCell.$elm.text(),
+					columnDefs  = gridOptions.columnDefs[gridModel.focusedCell.index],
+					options     = columnDefs.editModel.options,
+					tpl         = columnDefs.editModel.template;
+
+				gridModel.focusedCell.editing = {
+					defaultValue: cellValue
+				};
+
+				options = options ? 'options="' + JSON.stringify(options) + '"' : '';
+
+				gridModel.focusedCell.$elm.html(ngMethods.compile('<n-grid-edit-cell-' + tpl + ' value="' + cellValue + '" ' + options + '>'));
+			},
+
+			leaveEditMode: function(saveChanges) {
+				var value;
+
+				if (saveChanges) {
+					value = gridModel.focusedCell.$elm.find('input').val();
+				} else {
+					value = gridModel.focusedCell.editing.defaultValue;
+				}
+
+				gridModel.focusedCell.$elm.html(value);
+
+				Cell.calculate();
+			}
+		};
 
 
 
@@ -602,18 +625,18 @@
 		// Init
 
 		function setEvents() {
-			elems.$grid.on('click', focusGrid);
-			elems.$grid.on('click', elems.cell, focusCell);
-			elems.$grid.on('dblclick', elems.cell, enterEditCellMode);
-			elems.$grid.on('click', elems.removeRowBtn, removeRow);
+			elems.$grid.on('click', Grid.focus);
+			elems.$grid.on('click', elems.cell, Cell.focus);
+			elems.$grid.on('dblclick', elems.cell, Cell.enterEditMode);
+			elems.$grid.on('click', elems.removeRowBtn, Row.remove);
 
-			elems.$bodyWrapper.on('scroll', onBodyScroll);
+			elems.$bodyWrapper.on('scroll', Grid.onBodyScroll);
 
-			elems.$editBtn.on('click', enterEditMode);
-			elems.$cancelBtn.on('click', leaveEditMode);
-			elems.$addRowBtn.on('click', addRow);
+			elems.$editBtn.on('click', Grid.enterEditMode);
+			elems.$cancelBtn.on('click', Grid.leaveEditMode);
+			elems.$addRowBtn.on('click', Row.create);
 
-			$(document).on('keydown.nGrid.navigation', navigate);
+			$(document).on('keydown.nGrid.navigation', Grid.navigate);
 		}
 
 		function loadData() {

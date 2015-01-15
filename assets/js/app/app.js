@@ -1,4 +1,4 @@
-angular.module('nGridTWMSApp', ['nGridModule']);
+angular.module('nGridTWMSApp', ['nGrid']);
 
 angular.module('nGridTWMSApp').controller('DefaultCtrl', function($scope) {
 

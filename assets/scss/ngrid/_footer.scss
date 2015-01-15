@@ -1,9 +1,7 @@
 .ngrid__footer {
-	background-color: #fff;
 	padding: 5px;
 
 	@include no-select;
-	@include border-bottom-radius(3px);
 
 	.b-select {
 		height: 26px;
