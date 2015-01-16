@@ -11,13 +11,14 @@
 		};
 
 		HOTKEYS = {
-			'up':       38,
-			'right':    39,
-			'down':     40,
-			'left':     37,
-			'f4':       115,
-			'f6':       117,
-			'f8':       119
+			"UP":       38,
+			"RIGHT":    39,
+			"DOWN":     40,
+			"LEFT":     37,
+			"ESC":      27,
+			"F4":       115,
+			"F6":       117,
+			"F8":       119
 		};
 
 		UTILS = {
@@ -104,8 +105,8 @@
 		 'defaultEntity' used when new Rows creating
 		 */
 		function generateDefaultEntity(data) {
-			for (var i in data) {
-				gridOptions.defaultEntity[i] = null;
+			for (var key in data) {
+				gridOptions.defaultEntity[key] = null;
 			}
 		}
 
@@ -113,13 +114,28 @@
 			var row = [],
 				entity = angular.copy(data || gridOptions.defaultEntity);
 
-			gridOptions.columnDefs.forEach(function(columnDefs, i) {
-				row.push({
+			row = {
+				entity: entity,
+				cells: []
+			};
+
+			gridOptions.columnDefs.forEach(function(columnDefs, index) {
+				row.cells.push({
 					field: columnDefs.field,
 					value: entity[columnDefs.field],
-					index: i
+					index: index
 				});
+				row.entity[options.field] = row.cells[index];
 			});
+
+			for (var key in entity) {
+				if (!row.entity[key] || typeof row.entity[key] != 'object') {
+					row.entity[key] = {
+						field: key,
+						value: entity[key]
+					};
+				}
+			}
 
 			return row;
 		}
@@ -182,7 +198,7 @@
 			var rowHtml = '';
 
 			for (var i = 0; i < data.length; i++) {
-				var cellsData = data[i];
+				var cellsData = data[i].cells;
 
 				rowHtml += '<div class="ngrid__row">' + generateCellHtml(cellsData) + '</div>';
 			}
@@ -272,6 +288,9 @@
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////
+		// Methods
+
+		// //////////////////////////////////////////////////////////////////////////////////////
 		// Grid
 
 		var Grid = {
@@ -289,31 +308,33 @@
 				elems.$header.css('margin-left', -this.scrollLeft);
 			},
 
-			focus: function() {
-				gridModel.isGridFocused = true;
+			blur: function() {
+				if (gridModel.focusedCell) {
+					Cell.blur();
+				}
 			},
 
 			navigate: function(e) {
-				if (!gridModel.isGridFocused || gridModel.focusedCell.editing) return;
-				if (!~[HOTKEYS.left, HOTKEYS.up, HOTKEYS.right, HOTKEYS.down].indexOf(e.keyCode)) return;
+				if (!gridModel.focusedCell || gridModel.focusedCell.editing) return;
+				if (!~[HOTKEYS.LEFT, HOTKEYS.UP, HOTKEYS.RIGHT, HOTKEYS.DOWN].indexOf(e.keyCode)) return;
 
 				e.preventDefault();
 
 				var scrollOptions = {};
 
-				if (e.keyCode == HOTKEYS.left) {
+				if (e.keyCode == HOTKEYS.LEFT) {
 					gridModel.currentCol--;
 					scrollOptions.horizontal = true;
 				}
-				if (e.keyCode == HOTKEYS.up) {
+				if (e.keyCode == HOTKEYS.UP) {
 					gridModel.currentRow--;
 					scrollOptions.vertical = true;
 				}
-				if (e.keyCode == HOTKEYS.right) {
+				if (e.keyCode == HOTKEYS.RIGHT) {
 					gridModel.currentCol++;
 					scrollOptions.horizontal = true;
 				}
-				if (e.keyCode == HOTKEYS.down) {
+				if (e.keyCode == HOTKEYS.DOWN) {
 					gridModel.currentRow++;
 					scrollOptions.vertical = true;
 				}
@@ -337,6 +358,12 @@
 
 				Cell.changeFocused();
 				Grid.scroll(scrollOptions);
+			},
+
+			ESC: function(e) {
+				if (e.keyCode == HOTKEYS.ESC && gridModel.focusedCell.editing) {
+					Cell.leaveEditMode();
+				}
 			},
 
 			scroll: function(scrollOptions) {
@@ -398,6 +425,32 @@
 				Row.redrawAll();
 
 				elems.$grid.addClass('ngrid_disabled');
+			},
+
+			save: function() {
+				Grid.blur();
+
+				//console.debug('SAVED DATA: ', gridModel.dirtyRows);
+
+				/*
+
+				$.ajax({
+					url: gridOptions.urls.save,
+					data: gridModel.dirtyRows,
+					type: 'POST',
+					success: function (response) {
+						console.debug('SAVE REQUEST RESPONSE: ', response);
+					}
+				});
+
+				 */
+
+				// Clean dirty status from Rows
+				gridModel.dirtyRows.forEach(function(row) {
+					row.dirty = false;
+				});
+
+				gridModel.dirtyRows = [];
 			}
 		};
 
@@ -441,15 +494,18 @@
 
 		var Row = {
 			create: function() {
+				var data;
+
 				if (gridModel.isGridDisabled) {
 					return;
 				}
 
-				var data = generateRowData();
-
+				data = generateRowData();
 				data.dirty = true;
 
 				gridModel.rows.push(data);
+				gridModel.dirtyRows.push(data);
+
 				appendRowHtml([data]);
 
 				setTimeout(function() {
@@ -463,6 +519,20 @@
 
 				setTimeout(function() {
 					Confirm.open({}, function() {
+
+						/*
+
+						 $.ajax({
+							 url: gridOptions.urls.remove,
+							 data: gridModel.currentRow,
+							 type: 'POST',
+							 success: function (response) {
+								 console.debug('REMOVE ROW REQUEST RESPONSE: ', response);
+							 }
+						 });
+
+						 */
+
 						gridModel.rows.splice(gridModel.currentRow, 1);
 						Cell.blur();
 						$row.remove();
@@ -483,28 +553,28 @@
 
 		var Cell = {
 			changeFocused: function() {
-				// Clean previous focused Cell
 				if (gridModel.focusedCell) {
-					//gridModel.focusedCell.editing = false;
-					gridModel.focusedCell.focused = false;
-
-					$('.ngrid__cell.focused').removeClass('focused');
+					Cell.blur();
 				}
 
-				gridModel.focusedCell = gridModel.rows[gridModel.currentRow][gridModel.currentCol];
+				gridModel.focusedRow = gridModel.rows[gridModel.currentRow];
+				gridModel.focusedCell = gridModel.focusedRow.cells[gridModel.currentCol];
 				gridModel.focusedCell.focused = true;
 
-				if (!gridModel.focusedCell.$elm) {
-					gridModel.focusedCell.$elm =
-						elems.$grid
-							.find(elems.row).eq(gridModel.currentRow)
-							.find(elems.cell).eq(gridModel.currentCol);
-				}
+				gridModel.focusedCell.$elm =
+					elems.$grid
+						.find(elems.row).eq(gridModel.currentRow)
+						.find(elems.cell).eq(gridModel.currentCol);
 
 				gridModel.focusedCell.$elm.addClass('focused');
 			},
 
 			focus: function() {
+				// Check if previous focused Cell equal current focused
+				if ($(this).hasClass('focused')) {
+					return;
+				}
+
 				var rowIndex, colIndex;
 
 				rowIndex = $(this).closest(elems.row).index();
@@ -521,6 +591,7 @@
 					Cell.leaveEditMode();
 				}
 
+				gridModel.focusedCell.focused = false;
 				gridModel.focusedCell.$elm.removeClass('focused');
 				gridModel.focusedCell = null;
 			},
@@ -582,40 +653,34 @@
 			},
 
 			enterEditMode: function() {
-				if (gridModel.focusedCell.editing) {
+				if (gridModel.isGridDisabled || gridModel.focusedCell.editing) {
 					return;
 				}
 
-				//if (gridModel.isGridDisabled) {
-				//	return;
-				//}
+				if (!gridModel.focusedRow.dirty) {
+					gridModel.dirtyRows.push(gridModel.focusedRow);
+				}
 
 				var cellValue   = gridModel.focusedCell.$elm.text(),
 					columnDefs  = gridOptions.columnDefs[gridModel.focusedCell.index],
 					options     = columnDefs.editModel.options,
 					tpl         = columnDefs.editModel.template;
 
-				gridModel.focusedCell.editing = {
-					defaultValue: cellValue
-				};
+				gridModel.focusedRow.dirty = true;
+				gridModel.focusedCell.editing = true;
 
 				options = options ? 'options="' + JSON.stringify(options) + '"' : '';
 
 				gridModel.focusedCell.$elm.html(ngMethods.compile('<n-grid-edit-cell-' + tpl + ' value="' + cellValue + '" ' + options + '>'));
 			},
 
-			leaveEditMode: function(saveChanges) {
-				var value;
+			leaveEditMode: function() {
+				var value = gridModel.focusedCell.$elm.find('input').val();
 
-				if (saveChanges) {
-					value = gridModel.focusedCell.$elm.find('input').val();
-				} else {
-					value = gridModel.focusedCell.editing.defaultValue;
-				}
-
+				gridModel.focusedCell.editing = false;
+				gridModel.focusedCell.value = value;
 				gridModel.focusedCell.$elm.html(value);
-
-				Cell.calculate();
+				//Cell.calculate();
 			}
 		};
 
@@ -625,18 +690,21 @@
 		// Init
 
 		function setEvents() {
-			elems.$grid.on('click', Grid.focus);
+			elems.$grid.on('click', function(e) { e.stopPropagation(); });
 			elems.$grid.on('click', elems.cell, Cell.focus);
 			elems.$grid.on('dblclick', elems.cell, Cell.enterEditMode);
 			elems.$grid.on('click', elems.removeRowBtn, Row.remove);
 
 			elems.$bodyWrapper.on('scroll', Grid.onBodyScroll);
 
+			elems.$addRowBtn.on('click', Row.create);
+			elems.$saveBtn.on('click', Grid.save);
 			elems.$editBtn.on('click', Grid.enterEditMode);
 			elems.$cancelBtn.on('click', Grid.leaveEditMode);
-			elems.$addRowBtn.on('click', Row.create);
 
 			$(document).on('keydown.nGrid.navigation', Grid.navigate);
+			$(document).on('keydown.nGrid.ESC', Grid.ESC);
+			$(document).on('click.nGrid.blurGrid', Grid.blur);
 		}
 
 		function loadData() {
@@ -679,10 +747,10 @@
 				rows: [],
 				dirtyRows: [],
 				isGridDisabled: true,
-				isGridFocused: false,   // grid focused status; needed for navigation and enter editing mode in cell
 				currentRow: null,
 				currentCol: null,
-				focusedCell: null,      // current focused cell
+				focusedRow: null,
+				focusedCell: null,
 				editingCell: {
 					cellElement: null,
 					editElement: null

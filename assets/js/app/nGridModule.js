@@ -93,7 +93,7 @@ nGridEditCellTemplates.directive('nGridEditCellInput', function($timeout) {
 		link: function ($scope, $element) {
 			$timeout(function () {
 				$element[0].select();
-			}, 100);
+			});
 		}
 	};
 });

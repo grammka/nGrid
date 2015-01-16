@@ -20,7 +20,6 @@ $grid-row-even-bg-color: #fafafa;
 }
 
 .ngrid__row {
-	background: $grid-row-odd-bg-color;
 
 	&:nth-child(even) {
 		background: $grid-row-even-bg-color;
