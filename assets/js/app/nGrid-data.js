@@ -43,7 +43,7 @@ editCellTemplates = {
 	}
 };
 
-var tableColumnDefs = [{
+var tableColumnDefs = [/*{
 	field: 'productModelCode',
 	searchField: 'productModel.code',
 	displayName: 'Код модели',
@@ -83,7 +83,7 @@ var tableColumnDefs = [{
 	editableCellTemplate: null,  // cellTemplates.default
 	width: 140,
 	length: 50
-}, {
+}, */{
 	field: 'cmrQtyItems',
 	searchField: 'cmrQtyItems',
 	displayName: 'Кол CMR. шт',
@@ -150,7 +150,7 @@ var tableColumnDefs = [{
 	editModel: editCellTemplates.input.default,
 	editableCellTemplate: null,  // cellTemplates.floatInput
 	calculate: {
-		formula: '(#realQtyItems# * #bruttoPerItem#).toFixed(2)'
+		formula: 'parseFloat((#realQtyItems# * #bruttoPerItem#).toFixed(2))'
 	},
 	width: 140
 }, {
@@ -160,7 +160,7 @@ var tableColumnDefs = [{
 	editModel: editCellTemplates.input.default,
 	editableCellTemplate: null,  // cellTemplates.floatInput
 	calculate: {
-		formula: '(#realQtyItems# * #nettoPerItem#).toFixed(2)'
+		formula: 'parseFloat((#realQtyItems# * #nettoPerItem#).toFixed(2))'
 	},
 	width: 140
 }, {
@@ -170,7 +170,7 @@ var tableColumnDefs = [{
 	editModel: editCellTemplates.input.default,
 	editableCellTemplate: null,  // cellTemplates.floatInput
 	calculate: {
-		formula: '(#realQtyItems# * #pricePerItem#).toFixed(2)',
+		formula: 'parseFloat((#realQtyItems# * #pricePerItem#).toFixed(2))',
 		relations: ['pricePerItem'],
 		exclusions: ['pricePerItem']
 	},
@@ -182,7 +182,7 @@ var tableColumnDefs = [{
 	editModel: editCellTemplates.input.default,
 	editableCellTemplate: null,  // cellTemplates.floatInput
 	calculate: {
-		formula: '(#price# / #realQtyItems#).toFixed(2)',
+		formula: 'parseFloat((#price# / #realQtyItems#).toFixed(2))',
 		relations: ['price'],
 		exclusions: ['price']
 	},

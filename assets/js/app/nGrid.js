@@ -125,7 +125,7 @@
 					value: entity[columnDefs.field],
 					index: index
 				});
-				row.entity[options.field] = row.cells[index];
+				row.entity[columnDefs.field] = row.cells[index];
 			});
 
 			for (var key in entity) {
@@ -175,21 +175,27 @@
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// Render Grid
 
+		function calculateCells() {
+			gridModel.rows.forEach(function(row, rowIndex) {
+				gridOptions.columnDefs.forEach(function(columnDefs, colIndex) {
+					Cell.calculate(rowIndex, colIndex);
+				});
+			});
+		}
+
 		function appendHeaderHtml() {
 			var headerHtml = '';
 
-			for (var i = 0; i < gridOptions.columnDefs.length; i++) {
-				var columnDefs = gridOptions.columnDefs[i];
-
+			gridOptions.columnDefs.forEach(function(columnDefs, index) {
 				if (!columnDefs.hidden) {
 					headerHtml += '\
-						<div class="ngrid__header__cell ngrid__col_' + i + '">\
+						<div class="ngrid__header__cell ngrid__col_' + index + '">\
 							<div class="ngrid__header__cell__text">' + columnDefs.displayName + '</div>\
 							<div class="ngrid__header__cell__grip js-ngrid__header__cell__grip"></div>\
 						</div>\
 					';
 				}
-			}
+			});
 
 			elems.$header.html(headerHtml);
 		}
@@ -204,6 +210,8 @@
 			}
 
 			elems.$body.append(rowHtml);
+
+			calculateCells();
 		}
 
 		function generateCellHtml(data) {
@@ -308,6 +316,12 @@
 				elems.$header.css('margin-left', -this.scrollLeft);
 			},
 
+			ESC: function(e) {
+				if (e.keyCode == HOTKEYS.ESC && gridModel.focusedCell.editing) {
+					Cell.leaveEditMode(false);
+				}
+			},
+
 			blur: function() {
 				if (gridModel.focusedCell) {
 					Cell.blur();
@@ -323,47 +337,45 @@
 				var scrollOptions = {};
 
 				if (e.keyCode == HOTKEYS.LEFT) {
-					gridModel.currentCol--;
+					gridModel.currentColIndex--;
 					scrollOptions.horizontal = true;
 				}
 				if (e.keyCode == HOTKEYS.UP) {
-					gridModel.currentRow--;
+					gridModel.currentRowIndex--;
 					scrollOptions.vertical = true;
 				}
 				if (e.keyCode == HOTKEYS.RIGHT) {
-					gridModel.currentCol++;
+					gridModel.currentColIndex++;
 					scrollOptions.horizontal = true;
 				}
 				if (e.keyCode == HOTKEYS.DOWN) {
-					gridModel.currentRow++;
+					gridModel.currentRowIndex++;
 					scrollOptions.vertical = true;
 				}
 
-				if (gridModel.currentRow < 0) {
-					gridModel.currentRow = gridModel.rows.length - 1;
+				if (gridModel.currentRowIndex < 0) {
+					gridModel.currentRowIndex = gridModel.rows.length - 1;
 					scrollOptions.last = true;
 				}
-				if (gridModel.currentRow == gridModel.rows.length) {
-					gridModel.currentRow = 0;
+				if (gridModel.currentRowIndex == gridModel.rows.length) {
+					gridModel.currentRowIndex = 0;
 					scrollOptions.first = true;
 				}
-				if (gridModel.currentCol < 0) {
-					gridModel.currentCol = Grid.getColumnsCount() - 1;
+				if (gridModel.currentColIndex < 0) {
+					gridModel.currentColIndex = Grid.getColumnsCount() - 1;
 					scrollOptions.last = true;
 				}
-				if (gridModel.currentCol == Grid.getColumnsCount()) {
-					gridModel.currentCol = 0;
+				if (gridModel.currentColIndex == Grid.getColumnsCount()) {
+					gridModel.currentColIndex = 0;
 					scrollOptions.first = true;
+				}
+
+				if (gridModel.focusedCell) {
+					Cell.blur();
 				}
 
 				Cell.changeFocused();
 				Grid.scroll(scrollOptions);
-			},
-
-			ESC: function(e) {
-				if (e.keyCode == HOTKEYS.ESC && gridModel.focusedCell.editing) {
-					Cell.leaveEditMode();
-				}
 			},
 
 			scroll: function(scrollOptions) {
@@ -432,25 +444,32 @@
 
 				//console.debug('SAVED DATA: ', gridModel.dirtyRows);
 
-				/*
+				if (gridModel.dirtyRows.length) {
+					/*
 
-				$.ajax({
-					url: gridOptions.urls.save,
-					data: gridModel.dirtyRows,
-					type: 'POST',
-					success: function (response) {
-						console.debug('SAVE REQUEST RESPONSE: ', response);
-					}
-				});
+					 $.ajax({
+					 url: gridOptions.urls.save,
+					 data: gridModel.dirtyRows,
+					 type: 'POST',
+					 success: function (response) {
+					 console.debug('SAVE REQUEST RESPONSE: ', response);
+					 }
+					 });
 
-				 */
+					 */
 
-				// Clean dirty status from Rows
-				gridModel.dirtyRows.forEach(function(row) {
-					row.dirty = false;
-				});
+					// Clean dirty status from Rows
+					gridModel.dirtyRows.forEach(function(row) {
+						row.dirty = false;
+					});
 
-				gridModel.dirtyRows = [];
+					gridModel.dirtyRows = [];
+					gridModel.defaultRows = gridModel.rows.slice(0);
+
+					Grid.leaveEditMode();
+				} else {
+					Grid.leaveEditMode();
+				}
 			}
 		};
 
@@ -460,23 +479,23 @@
 		var Confirm = {
 			/**
 			 *
-			 * @param options - {accept: "OK", decline: "CANCEL", message: "ARE U SURE?"}
+			 * @param options - {accept: "OK", reject: "CANCEL", message: "ARE U SURE?"}
 			 * @param acceptHandler
-			 * @param declineHandler
+			 * @param rejectHandler
 			 */
-			open: function (options, acceptHandler, declineHandler) {
-				elems.$confirm.append('<div class="ngrid__confirm__header">' + (options.message || 'Вы уверены?') + '</div>');
+			open: function (options, acceptHandler, rejectHandler) {
+				elems.$confirm.append('<div class="ngrid__confirm__header">' + options.message + '</div>');
 
-				var $acceptBtn     = $('<div class="b-btn b-btn_full b-btn_m b-btn_green">' + (options.message || 'Удалить') + '</div>').appendTo(elems.$confirm),
-					$declineBtn    = $('<div class="b-btn b-btn_full b-btn_m b-btn_red">' + (options.message || 'Отмена') + '</div>').appendTo(elems.$confirm);
+				var $acceptBtn     = $('<button class="b-btn b-btn_full b-btn_m b-btn_red">' + options.accept + '</button>').appendTo(elems.$confirm),
+					$rejectBtn    = $('<button class="b-btn b-btn_full b-btn_m b-btn_green">' + options.reject + '</button>').appendTo(elems.$confirm);
 
 				$acceptBtn.on('click', function() {
 					if (acceptHandler) acceptHandler();
 					Confirm.close();
 				});
 
-				$declineBtn.on('click', function() {
-					if (declineHandler) declineHandler();
+				$rejectBtn.on('click', function() {
+					if (rejectHandler) rejectHandler();
 					Confirm.close();
 				});
 
@@ -493,12 +512,16 @@
 		// Row
 
 		var Row = {
-			create: function() {
-				var data;
+			get: function(rowIndex) {
+				return gridModel.rows[rowIndex];
+			},
 
+			create: function() {
 				if (gridModel.isGridDisabled) {
 					return;
 				}
+
+				var data;
 
 				data = generateRowData();
 				data.dirty = true;
@@ -515,16 +538,24 @@
 			},
 
 			remove: function() {
+				if (gridModel.isGridDisabled) {
+					return;
+				}
+
 				var $row = $(this).closest(elems.row);
 
 				setTimeout(function() {
-					Confirm.open({}, function() {
+					Confirm.open({
+						message: 'Удалить строку?',
+						accept: 'Удалить',
+						reject: 'Отмена'
+					}, function() {
 
 						/*
 
 						 $.ajax({
 							 url: gridOptions.urls.remove,
-							 data: gridModel.currentRow,
+							 data: gridModel.currentRowIndex,
 							 type: 'POST',
 							 success: function (response) {
 								 console.debug('REMOVE ROW REQUEST RESPONSE: ', response);
@@ -533,7 +564,7 @@
 
 						 */
 
-						gridModel.rows.splice(gridModel.currentRow, 1);
+						gridModel.rows.splice(gridModel.currentRowIndex, 1);
 						Cell.blur();
 						$row.remove();
 					});
@@ -541,10 +572,12 @@
 			},
 
 			redrawAll: function() {
-				gridModel.rows = gridModel.defaultRows.slice(0);
+				if (gridModel.dirtyRows.length) {
+					gridModel.rows = gridModel.defaultRows.slice(0);
 
-				elems.$body.empty();
-				appendRowHtml(gridModel.rows);
+					elems.$body.empty();
+					appendRowHtml(gridModel.rows);
+				}
 			}
 		};
 
@@ -552,43 +585,52 @@
 		// Cell
 
 		var Cell = {
-			changeFocused: function() {
-				if (gridModel.focusedCell) {
-					Cell.blur();
-				}
+			get: function(rowIndex, colIndex) {
+				return gridModel.rows[rowIndex].cells[colIndex];
+			},
 
-				gridModel.focusedRow = gridModel.rows[gridModel.currentRow];
-				gridModel.focusedCell = gridModel.focusedRow.cells[gridModel.currentCol];
+			getHtmlElement: function(cell, rowIndex, colIndex) {
+				if (cell) {
+					cell.$elm = elems.$grid
+						.find(elems.row).eq(rowIndex)
+						.find(elems.cell).eq(colIndex);
+				}
+			},
+
+			changeFocused: function() {
+				gridModel.focusedRow = gridModel.rows[gridModel.currentRowIndex];
+				gridModel.focusedCell = gridModel.focusedRow.cells[gridModel.currentColIndex];
 				gridModel.focusedCell.focused = true;
 
-				gridModel.focusedCell.$elm =
-					elems.$grid
-						.find(elems.row).eq(gridModel.currentRow)
-						.find(elems.cell).eq(gridModel.currentCol);
+				Cell.getHtmlElement(gridModel.focusedCell, gridModel.currentRowIndex, gridModel.currentColIndex);
 
 				gridModel.focusedCell.$elm.addClass('focused');
 			},
 
 			focus: function() {
+				var rowIndex, colIndex;
+
 				// Check if previous focused Cell equal current focused
 				if ($(this).hasClass('focused')) {
 					return;
 				}
 
-				var rowIndex, colIndex;
+				if (gridModel.focusedCell) {
+					Cell.blur();
+				}
 
 				rowIndex = $(this).closest(elems.row).index();
 				colIndex = $(this).index();
 
-				gridModel.currentRow = rowIndex;
-				gridModel.currentCol = colIndex;
+				gridModel.currentRowIndex = rowIndex;
+				gridModel.currentColIndex = colIndex;
 
 				Cell.changeFocused();
 			},
 
 			blur: function() {
 				if (gridModel.focusedCell.editing) {
-					Cell.leaveEditMode();
+					Cell.leaveEditMode(true);
 				}
 
 				gridModel.focusedCell.focused = false;
@@ -596,57 +638,57 @@
 				gridModel.focusedCell = null;
 			},
 
-			calculate: function() {
-				var calculate = gridOptions.columnDefs[$scope.$index].calculate;
+			calculate: function(rowIndex, colIndex, changedField) {
+				var calculate = gridOptions.columnDefs[colIndex].calculate;
 
-				if (calculate.formula) {
-					var formula = angular.copy(calculate.formula),
-						formulaFields = formula.match(/(#[^\s\+\-\*\/]+#)/g);
+				if (calculate && calculate.formula) {
+					var formulaFields = calculate.formula.match(/(#[^\s\+\-\*\/]+#)/g);
 
-					$scope.cell.__calculate = function (isInit) {
-						if (isInit && $scope.cell.value) return;
+					var _formula, value;
 
-						var _formula = angular.copy(formula);
+					_formula = calculate.formula;
 
-						for (var i = 0; i < formulaFields.length; i++) {
-							var field   = formulaFields[i],
-								cellId  = field.replace(/#/g, ''),
-								value   = $scope.row.entity[cellId].value;
+					formulaFields.forEach(function(field) {
+						var cellId  = field.replace(/#/g, ''),
+							value   = Row.get(rowIndex).entity[cellId].value;
 
-							_formula = _formula.replace(field, value || 0);
-						}
+						_formula = _formula.replace(field, value || 0);
+					});
 
-						var value = eval(_formula);
-						value = isFinite(value) ? value : 0;
+					value = eval(_formula);
+					value = isFinite(value) ? value : 0;
 
-						$scope.cell.value = value;
-					};
-
-					$scope.cell.__calculate(true); // init calculate
+					Cell.setValue(Cell.get(rowIndex, colIndex), rowIndex, colIndex, value, changedField);
 				}
+			},
 
-				if (calculate.relations) {
-					$scope.$watch('cell.value', function (n, o) {
-						if (n && n != o) {
-							for (var i = 0; i < calculate.relations.length; i++) {
-								var cellId = calculate.relations[i],
-									cell = $scope.row.entity[cellId];
+			setValue: function(cell, rowIndex, colIndex, value, changedField) {
+				cell.value = value;
 
-								/*
-								 Exclusion comparing with current focused cell
-								 For example:
-								 - you have 3 fields: 'ItemsCount', 'PricePerItem', 'TotalPrice'
-								 - you focused 'PricePerItem' field (gridModel.focusedCell.field == 'PricePerItem')
-								 - you write value in focused cell
-								 - 'PricePerItem' will be changed
-								 - Above $scope.$watch('cell.value') will be called again coz 'PricePerItem' was changed
-								 - So we have LOOP
-								 - But we have 'exclusion' where exclusion field equal to our Focused cell!
-								 */
-								if (!calculate.exclusions || !~calculate.exclusions.indexOf(gridModel.focusedCell.field)) {
-									cell.__calculate();
-								}
-							}
+				Cell.getHtmlElement(cell, rowIndex, colIndex);
+				cell.$elm.html(value);
+
+				var calculate = gridOptions.columnDefs[colIndex].calculate;
+
+				if (calculate && calculate.relations) {
+					calculate.relations.forEach(function(fieldName) {
+						var cell    = Row.get(rowIndex).entity[fieldName],
+							field   = Cell.get(rowIndex, colIndex).field;
+
+						/*
+						 Exclusion comparing with current focused cell
+						 For example:
+						 - you have 3 fields: 'ItemsCount', 'PricePerItem', 'TotalPrice'
+						 - you focused 'PricePerItem' field (gridModel.focusedCell.field == 'PricePerItem')
+						 - you write value in focused cell
+						 - 'PricePerItem' will be changed
+						 - Above $scope.$watch('cell.value') will be called again coz 'PricePerItem' was changed
+						 - So we have LOOP
+						 - But we have 'exclusion' where exclusion field equal to our Focused cell!
+						 */
+
+						if (!calculate.exclusions || !~calculate.exclusions.indexOf(changedField)) {
+							Cell.calculate(rowIndex, cell.index, field);
 						}
 					});
 				}
@@ -667,20 +709,28 @@
 					tpl         = columnDefs.editModel.template;
 
 				gridModel.focusedRow.dirty = true;
-				gridModel.focusedCell.editing = true;
+				gridModel.focusedCell.editing = {
+					defaultValue: cellValue
+				};
 
 				options = options ? 'options="' + JSON.stringify(options) + '"' : '';
 
 				gridModel.focusedCell.$elm.html(ngMethods.compile('<n-grid-edit-cell-' + tpl + ' value="' + cellValue + '" ' + options + '>'));
 			},
 
-			leaveEditMode: function() {
-				var value = gridModel.focusedCell.$elm.find('input').val();
+			leaveEditMode: function(saveChanges) {
+				var value;
+
+				if (saveChanges) {
+					value = gridModel.focusedCell.$elm.find('input').val();
+				} else {
+					value = gridModel.focusedCell.editing.defaultValue;
+				}
 
 				gridModel.focusedCell.editing = false;
-				gridModel.focusedCell.value = value;
-				gridModel.focusedCell.$elm.html(value);
-				//Cell.calculate();
+
+				Cell.setValue(gridModel.focusedCell, gridModel.currentRowIndex, gridModel.currentColIndex, value);
+				Cell.calculate(gridModel.currentRowIndex, gridModel.currentColIndex);
 			}
 		};
 
@@ -709,6 +759,8 @@
 
 		function loadData() {
 			var rows = generateRowsData(gridData);
+
+			//console.log(rows);
 
 			gridModel.defaultRows = rows.slice(0);
 			gridModel.rows = rows.slice(0);
@@ -747,8 +799,8 @@
 				rows: [],
 				dirtyRows: [],
 				isGridDisabled: true,
-				currentRow: null,
-				currentCol: null,
+				currentRowIndex: null,
+				currentColIndex: null,
 				focusedRow: null,
 				focusedCell: null,
 				editingCell: {
@@ -774,11 +826,11 @@
 
 			$(container).replaceWith(elems.$grid);
 
+			generateStylesheets();
 			getVisibleColumnDefs();
-			setEvents();
 			appendHeaderHtml();
 			initHeaderGrip();
-			generateStylesheets();
+			setEvents();
 
 			if (gridOptions.urls.loadData) {
 				loadData();
