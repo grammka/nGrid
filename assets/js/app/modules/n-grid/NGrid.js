@@ -4,12 +4,6 @@
 		var HOTKEYS, UTILS, TEMPLATES, DEFAULT_OPTIONS;
 		var elems, gridOptions, gridModel;
 
-		elems = {
-			row: '.ngrid__row',
-			cell: '.ngrid__cell',
-			removeRowBtn: '.ngrid__remove-row-btn'
-		};
-
 		HOTKEYS = {
 			"UP":       38,
 			"RIGHT":    39,
@@ -62,13 +56,19 @@
 			enableCellSelection: true
 		};
 
+		elems = {
+			row: '.ngrid__row',
+			cell: '.ngrid__cell',
+			removeRowBtn: '.ngrid__remove-row-btn'
+		};
+
 
 
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// Default
 
 		function extendOptions(options) {
-			var options = angular.extend(DEFAULT_OPTIONS, options);
+			var options = $.extend(DEFAULT_OPTIONS, options);
 
 			options.id = UTILS.getId();
 
@@ -111,18 +111,18 @@
 		}
 
 		function generateRowData(data) {
-			var row = [],
-				entity = angular.copy(data || gridOptions.defaultEntity);
+			var row     = [],
+				entity  = $.extend({}, data || gridOptions.defaultEntity);
 
 			row = {
-				entity: entity,
+				entity: $.extend({}, entity),
 				cells: []
 			};
 
 			gridOptions.columnDefs.forEach(function(columnDefs, index) {
 				row.cells.push({
 					field: columnDefs.field,
-					value: entity[columnDefs.field],
+					value: entity[columnDefs.field] || null,
 					index: index
 				});
 				row.entity[columnDefs.field] = row.cells[index];
@@ -641,24 +641,36 @@
 			calculate: function(rowIndex, colIndex, changedField) {
 				var calculate = gridOptions.columnDefs[colIndex].calculate;
 
+				//return console.log(calculate);
+
 				if (calculate && calculate.formula) {
-					var formulaFields = calculate.formula.match(/(#[^\s\+\-\*\/]+#)/g);
+					var formulaFields, formula, resultValue;
 
-					var _formula, value;
+					formulaFields = calculate.formula.match(/(#[^\s\+\-\*\/]+#)/g);
+					formula = calculate.formula;
 
-					_formula = calculate.formula;
+					if (formulaFields.every(function(field) {
+						var cellId      = field.replace(/#/g, ''),
+							cellData    = Row.get(rowIndex).entity[cellId],
+							value;
 
-					formulaFields.forEach(function(field) {
-						var cellId  = field.replace(/#/g, ''),
-							value   = Row.get(rowIndex).entity[cellId].value;
+						if (cellData) {
+							value = cellData.value;
 
-						_formula = _formula.replace(field, value || 0);
-					});
+							return formula = formula.replace(field, value || 0);
+						} else {
+							//console.log(Row.get(rowIndex).entity, cellId);
 
-					value = eval(_formula);
-					value = isFinite(value) ? value : 0;
+							//console.error('Field not founded in Entity');
 
-					Cell.setValue(Cell.get(rowIndex, colIndex), rowIndex, colIndex, value, changedField);
+							return false;
+						}
+					})) {
+						resultValue = eval(formula);
+						resultValue = isFinite(resultValue) ? resultValue : 0;
+
+						Cell.setValue(Cell.get(rowIndex, colIndex), rowIndex, colIndex, resultValue, changedField);
+					}
 				}
 			},
 
@@ -758,9 +770,7 @@
 		}
 
 		function loadData() {
-			var rows = generateRowsData(gridData);
-
-			//console.log(rows);
+			var rows = generateRowsData(gridData.slice(0));
 
 			gridModel.defaultRows = rows.slice(0);
 			gridModel.rows = rows.slice(0);

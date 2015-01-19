@@ -9,10 +9,8 @@ angular.module('nGrid').directive('nGridEditCellModalWithGrid', function($modal)
 		},
 		link: function ($scope, $element) {
 
-			console.log($scope);
-
 			var modalInstance = $modal.open({
-				templateUrl: 'partials/modals/list.html',
+				templateUrl: 'list-modal-instance.html',
 				controller: 'listModalInstanceCtrl',
 				resolve: {
 					options: function() {
@@ -30,7 +28,7 @@ angular.module('nGrid').directive('nGridEditCellModalWithGrid', function($modal)
 				$scope.navigationPsaController.loadById(selectedItem.psaId);
 				$scope.cmrForLoad = selectedItem.id;
 			}, function() {
-				console.debug('Modal dismissed at: ' + new Date());
+				//console.log('Modal dismissed at: ' + new Date());
 			});
 
 		}
