@@ -554,12 +554,12 @@
 						/*
 
 						 $.ajax({
-							 url: gridOptions.urls.remove,
-							 data: gridModel.currentRowIndex,
-							 type: 'POST',
-							 success: function (response) {
-								 console.debug('REMOVE ROW REQUEST RESPONSE: ', response);
-							 }
+						 url: gridOptions.urls.remove,
+						 data: gridModel.currentRowIndex,
+						 type: 'POST',
+						 success: function (response) {
+						 console.debug('REMOVE ROW REQUEST RESPONSE: ', response);
+						 }
 						 });
 
 						 */
@@ -811,7 +811,7 @@
 
 			elems.$grid                 = $('<div class="ngrid' + (gridModel.isGridDisabled ? ' ngrid_disabled' : '') + '" id="ngrid-' + gridOptions.id + '" />');
 			elems.$confirmOverlay       = $('<div class="ngrid__confirm__overlay"></div>').appendTo(elems.$grid);
-            elems.$confirm              = $('<div class="ngrid__confirm"></div>').appendTo(elems.$confirmOverlay);
+			elems.$confirm              = $('<div class="ngrid__confirm"></div>').appendTo(elems.$confirmOverlay);
 			elems.$headerWrapper        = $('<div class="ngrid__header__wrapper"></div>').appendTo(elems.$grid);
 			elems.$header               = $('<div class="ngrid__header"></div>').appendTo(elems.$headerWrapper);
 			elems.$bodyWrapper          = $('<div class="ngrid__body__wrapper"></div>').appendTo(elems.$grid);
