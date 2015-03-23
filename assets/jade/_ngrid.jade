@@ -1,0 +1,30 @@
+div(style="width: 800px;")
+
+	.ngrid
+		.ngrid__header__wrapper
+			.ngrid__header
+				table
+					colgroup
+						col(ng-repeat="columnDefs in model.columnDefs", style="width: {{ columnDefs.width }}px;")
+					thead
+						tr.ngrid__header__row
+							th.ngrid__header__col(
+								ng-repeat="columnDefs in model.columnDefs"
+								data-field="{{ columnDefs.field }}"
+							)
+								span {{ columnDefs.displayName }}
+								.ngrid__header__col__grip
+		.ngrid__content
+			table
+				colgroup
+					col(ng-repeat="columnDefs in model.columnDefs", style="width: {{ columnDefs.width }}px;")
+				tbody
+					tr.ngrid__content__row(ng-repeat="row in model.rows")
+						td.ngrid__content__cell(ng-repeat="cell in row.cells") {{ row.entity[cell.field] }}
+		.ngrid__footer
+			.ngrid__navig
+				.nbtn.nbtn_20.nbtn_blue New Row
+				.nbtn.nbtn_20.nbtn_ocean Save
+				.nbtn.nbtn_20.nbtn_blue Edit
+				.nbtn.nbtn_20.nbtn_red Cancel
+			.ngrid__pagination

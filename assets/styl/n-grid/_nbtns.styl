@@ -1,0 +1,111 @@
+.nbtn
+	border: 1px solid transparent
+	cursor: pointer
+	text-decoration: none !important
+	text-align: center
+	white-space: nowrap
+	color: #fff
+	no-select()
+	display-inline-block()
+	border-radius 2px
+	input
+		position: absolute
+		left: -99999px
+	&.active,
+	&[disabled],
+	&.disabled
+		cursor: default
+	&[disabled],
+	&.disabled
+		background-color #ddd !important
+		border-color #ccc !important
+		color: #fff
+
+.nbtn_w100
+	display: block
+
+.nbtn_20
+	height: 18px
+	line-height: 18px
+	padding: 0 7px
+	font-size: 12px
+
+.nbtn_30
+	height: 28px
+	line-height: 28px
+	padding: 0 11px
+	font-size: 14px
+
+.nbtn_40
+	height: 38px
+	line-height: 38px
+	padding: 0 13px
+	font-size: 15px
+
+.nbtn_50
+	height: 48px
+	line-height: 48px
+	padding: 0 15px
+	font-size: 16px
+
+.nbtns
+	font-size: 0
+	.nbtn
+		margin-left: 10px
+		&:first-child
+			margin-left: 0
+
+
+
+$nbtn_simple = #f2f7f9
+$nbtn_simple_hover = white
+$nbtn_simple_active = #e6eef2
+
+.nbtn_simple
+	background-color: $nbtn_simple
+	border-color: #c2ced8
+	color: $default-text-color
+
+	&:hover
+		background-color: $nbtn_simple_hover
+	&:active
+		background-color: $nbtn_simple_active
+
+
+$nbtn_ocean = #1fcd54
+$nbtn_ocean_hover = #1cb94c
+$nbtn_ocean_active = #189a40
+
+.nbtn_ocean
+	background-color: $nbtn_ocean
+
+	&:hover
+		background-color: $nbtn_ocean_hover
+	&:active
+		background-color: $nbtn_ocean_active
+
+
+$nbtn_blue = #30bafe
+$nbtn_blue_hover = #2ca5e1
+$nbtn_blue_active = #2697cf
+
+.nbtn_blue
+	background-color: $nbtn_blue
+
+	&:hover
+		background-color: $nbtn_blue_hover
+	&:active
+		background-color: $nbtn_blue_active
+
+
+$nbtn_red = #fa6b5b
+$nbtn_red_hover = #EF6152
+$nbtn_red_active = #E04F3E
+
+.nbtn_red
+	background-color: $nbtn_red
+
+	&:hover
+		background-color: $nbtn_red_hover
+	&:active
+		background-color: $nbtn_red_active

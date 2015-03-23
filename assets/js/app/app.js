@@ -1,1 +1,1 @@
-angular.module('nGridTWMSApp', ['nGrid', 'ui.bootstrap']);
+angular.module('nGridTWMSApp', []);

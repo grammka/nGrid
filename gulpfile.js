@@ -3,6 +3,7 @@ var gulp                = require('gulp'),
 	plugins             = require('gulp-load-plugins')(),
 	mainBowerFiles      = require('main-bower-files'),
 	del                 = require('del'),
+	nib                 = require('nib'),
 	historyApiFallback  = require('connect-history-api-fallback');
 
 
@@ -34,8 +35,8 @@ var paths = {
 		},
 		"dest": ""
 	},
-	"scss": {
-		"source": "assets/scss/**/*.scss",
+	"stylus": {
+		"source": ["assets/styl/**/*.styl", "!assets/styl/**/_*.styl"],
 		"dest": "data/css"
 	},
 	"js": {
@@ -110,22 +111,19 @@ gulp.task('js', function() {
 });
 
 
-// SASS -----------------------------------------------------
+// STYLUS -----------------------------------------------------
 
-gulp.task('sass', function() {
-	return gulp.src(paths.scss.source)
+gulp.task('stylus', function() {
+	return gulp.src(paths.stylus.source)
 		.pipe(plugins.plumber({errorHandler: nonotify ? plugins.util.noop() : plugins.notify.onError("Error: <%= error.message %>")}))
-		.pipe(plugins.rubySass({
-			"compass": true,
-			"style": production ? "compressed" : "compact",
-			"sourcemap=none": true,
-			"check": true
+		.pipe(plugins.stylus({
+			use: nib(),
+			"compress": production ? true : false
 		}))
 		.pipe(production ? plugins.util.noop() : plugins.sourcemaps.init({loadMaps: true}))
-		.pipe(plugins.autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
 		.pipe(production ? plugins.util.noop() : plugins.sourcemaps.write())
-		.pipe(gulp.dest((production ? tmpDir : rootDir) + paths.scss.dest))
-		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("SASS  ")));
+		.pipe(gulp.dest((production ? tmpDir : rootDir) + paths.stylus.dest))
+		.pipe(nonotify ? plugins.util.noop() : plugins.notify(notifyFile("STYLUS ")));
 });
 
 
@@ -222,7 +220,7 @@ gulp.task('server', function () {
 	plugins.connect.server({
 		root: EXPRESS_ROOT,
 		port: EXPRESS_PORT,
-		livereload: true,
+		livereload: false,
 		middleware: function() {
 			return [historyApiFallback];
 		}
@@ -233,11 +231,11 @@ gulp.task('server', function () {
 // COMPONENTS -----------------------------------------------
 
 gulp.task('bower-install', function() {
-	gulp.src([__dirname + "/bower.json"]).pipe(install());
+	return gulp.src([__dirname + "/bower.json"]).pipe(install());
 });
 
 gulp.task('npm-install', function() {
-	gulp.src([__dirname + "/package.json"]).pipe(install());
+	return gulp.src([__dirname + "/package.json"]).pipe(install());
 });
 
 
@@ -276,7 +274,7 @@ gulp.task('revision', function () {
 
 gulp.task('update-components', ['bower-install', 'npm-install']);
 
-gulp.task('build-assets', ['jade', 'js', 'sass', 'images', 'fonts'], function() {
+gulp.task('build-assets', ['jade', 'js', 'stylus', 'images', 'fonts'], function() {
 	gulp.start('revision');
 });
 
@@ -294,8 +292,8 @@ gulp.task('buildwatch', ['build'], function() {
 
 gulp.task('watch', ['server'], function() {
 	gulp.watch(paths.jade.source.dev[0], ['jade']);
+	gulp.watch(paths.stylus.source[0], ['stylus']);
 	gulp.watch(paths.images.source, ['images']);
-	gulp.watch(paths.scss.source, ['sass']);
 	gulp.watch(paths.js.source, ['js']);
 	gulp.watch(paths.jsbower.source, ['vendor']);
 	gulp.watch(__dirname + '/bower.json', ['bower-install'], function() {

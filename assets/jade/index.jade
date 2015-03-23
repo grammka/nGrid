@@ -9,11 +9,11 @@ html(ng-app="nGridTWMSApp", id="nGridTWMSApp")
 		//link(rel="icon", href="data/img/favicon.ico", type="image/x-icon")
 
 		// build:css data/css/vendor.min.css
-		link(href="data/css/vendor.min.css", rel="stylesheet")
+		//link(href="data/css/vendor.min.css", rel="stylesheet")
 		// endbuild
 
-		// build:css data/css/app.css
-		link(href="data/css/app.css", rel="stylesheet")
+		// build:css data/css/grid.css
+		link(href="data/css/grid.css", rel="stylesheet")
 		// endbuild
 
 		// build:js data/js/vendor.js
@@ -26,7 +26,4 @@ html(ng-app="nGridTWMSApp", id="nGridTWMSApp")
 
 	body(ng-controller="DefaultCtrl")
 
-		div(style="width: 1000px;")
-			n-grid(options="gridOptions")
-
-		include _ngrid-templates
+		include _ngrid
